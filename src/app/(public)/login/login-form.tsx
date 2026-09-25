@@ -1,15 +1,51 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { EyeIcon } from "@/components/eye-icon";
+import { ApiError } from "@/lib/api";
+import { getSession, login } from "@/lib/auth";
 import styles from "./login.module.css";
 
 type Role = "buyer" | "seller";
 
 export function LoginForm() {
+  const router = useRouter();
   const [role, setRole] = useState<Role>("buyer");
   const [showPassword, setShowPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (getSession("buyer")) {
+      router.replace("/buyer");
+    } else if (getSession("seller")) {
+      router.replace("/seller");
+    }
+  }, [router]);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setSubmitting(true);
+
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("account") ?? "");
+    const password = String(formData.get("password") ?? "");
+
+    try {
+      await login(role, email, password);
+      router.push(role === "buyer" ? "/buyer" : "/seller");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Couldn't reach the server. Please try again.");
+      }
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div className={styles.card}>
@@ -28,7 +64,10 @@ export function LoginForm() {
           className={`${styles.roleTab} ${
             role === "buyer" ? styles.roleTabActive : ""
           }`}
-          onClick={() => setRole("buyer")}
+          onClick={() => {
+            setRole("buyer");
+            setError(null);
+          }}
         >
           Buyer
         </button>
@@ -39,7 +78,10 @@ export function LoginForm() {
           className={`${styles.roleTab} ${
             role === "seller" ? styles.roleTabActive : ""
           }`}
-          onClick={() => setRole("seller")}
+          onClick={() => {
+            setRole("seller");
+            setError(null);
+          }}
         >
           Seller
         </button>
@@ -47,23 +89,21 @@ export function LoginForm() {
 
       <h1 className={styles.heading}>Sign in</h1>
 
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
-        }}
-      >
+      <form onSubmit={handleSubmit}>
+        {error && <p className={styles.formError}>{error}</p>}
+
         <div className={styles.field}>
           <div className={styles.labelRow}>
             <label className={styles.label} htmlFor="account">
-              Account
+              Email
             </label>
           </div>
           <input
             id="account"
             name="account"
-            type="text"
+            type="email"
             className={styles.input}
-            placeholder="Phone Number or Email"
+            placeholder="Email"
             autoComplete="username"
             autoFocus
             required
@@ -105,8 +145,10 @@ export function LoginForm() {
           <label htmlFor="remember">Stay Signed In</label>
         </div>
 
-        <button type="submit" className={styles.submit}>
-          Sign In as {role === "buyer" ? "Buyer" : "Seller"}
+        <button type="submit" className={styles.submit} disabled={submitting}>
+          {submitting
+            ? "Signing in…"
+            : `Sign In as ${role === "buyer" ? "Buyer" : "Seller"}`}
         </button>
       </form>
 

@@ -11,6 +11,11 @@
   --brand-border: #e2e2e2;
   --brand-muted: #6b7280;
   --surface-muted: #f7f7f8;
+  --brand-danger: #dc2626;
+  --brand-danger-dark: #b91c1c;
+  --brand-danger-bg: #fef2f2;
+  --brand-amber: #d97706;
+  --brand-amber-bg: #fffbeb;
 }
 
 html,

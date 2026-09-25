@@ -1,0 +1,51 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 20, 20, 0.5);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 3.5rem 1.25rem;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.dialog {
+  width: 100%;
+  max-width: 34rem;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.4rem;
+  border-bottom: 1px solid var(--brand-border);
+}
+
+.title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.closeButton {
+  border: none;
+  background: transparent;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--brand-muted);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+}
+
+.closeButton:hover {
+  color: #1a1a1a;
+}
+
+.body {
+  padding: 1.4rem;
+}

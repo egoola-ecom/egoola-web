@@ -1,0 +1,50 @@
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.5rem;
+  background: #fff;
+  border-bottom: 1px solid var(--brand-border);
+}
+
+.logo {
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.logoDark {
+  color: #1a1a1a;
+}
+
+.logoGreen {
+  color: var(--brand-green);
+}
+
+.right {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.userName {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.logoutButton {
+  border: 1px solid var(--brand-border);
+  background: #fff;
+  color: #444;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.4rem 0.85rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.logoutButton:hover {
+  border-color: var(--brand-danger);
+  color: var(--brand-danger);
+}

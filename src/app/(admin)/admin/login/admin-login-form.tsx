@@ -1,18 +1,50 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { EyeIcon } from "@/components/eye-icon";
+import { ApiError } from "@/lib/api";
+import { getSession, login } from "@/lib/auth";
 import styles from "./admin-login.module.css";
 
 export function AdminLoginForm() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (getSession("admin")) {
+      router.replace("/admin/dashboard");
+    }
+  }, [router]);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setSubmitting(true);
+
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "");
+    const password = String(formData.get("password") ?? "");
+
+    try {
+      await login("admin", email, password);
+      router.push("/admin/dashboard");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Couldn't reach the server. Please try again.");
+      }
+      setSubmitting(false);
+    }
+  }
 
   return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-      }}
-    >
+    <form onSubmit={handleSubmit}>
+      {error && <p className={styles.formError}>{error}</p>}
+
       <div className={styles.field}>
         <label className={styles.label} htmlFor="email">
           Email
@@ -59,8 +91,8 @@ export function AdminLoginForm() {
         <label htmlFor="remember">Keep me signed in</label>
       </div>
 
-      <button type="submit" className={styles.submit}>
-        Sign In
+      <button type="submit" className={styles.submit} disabled={submitting}>
+        {submitting ? "Signing in…" : "Sign In"}
       </button>
 
       <p className={styles.footNote}>
