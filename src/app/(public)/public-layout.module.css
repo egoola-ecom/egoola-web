@@ -1,0 +1,246 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #fff;
+  border-bottom: 1px solid var(--brand-border);
+}
+
+.headerRow {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0.9rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.logo {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  flex: 0 0 auto;
+}
+
+.logoDark {
+  color: #1a1a1a;
+}
+
+.logoGreen {
+  color: var(--brand-green);
+}
+
+.search {
+  flex: 1 1 auto;
+  display: flex;
+  max-width: 34rem;
+}
+
+.searchInput {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+  border: 1px solid var(--brand-border);
+  border-right: none;
+  border-radius: 6px 0 0 6px;
+  min-width: 0;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--brand-green);
+}
+
+.searchButton {
+  border: none;
+  background: var(--brand-green);
+  color: #fff;
+  padding: 0 1.1rem;
+  border-radius: 0 6px 6px 0;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.searchButton:hover {
+  background: var(--brand-green-dark);
+}
+
+.navActions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+.loginLink {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #1a1a1a;
+  padding: 0.5rem 0.75rem;
+}
+
+.loginLink:hover {
+  color: var(--brand-green-dark);
+}
+
+.sellButton {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--brand-green);
+  padding: 0.55rem 1.1rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.sellButton:hover {
+  background: var(--brand-green-dark);
+}
+
+.main {
+  min-height: calc(100vh - 4rem);
+}
+
+.footer {
+  background: var(--brand-charcoal);
+  color: #f1f1f1;
+}
+
+.footerGrid {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 2rem;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+}
+
+.footerBrand h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.footerBrand .accent {
+  color: var(--brand-green);
+}
+
+.footerTagline {
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  color: #cfcfcf;
+  text-transform: uppercase;
+}
+
+.footerAbout {
+  margin-top: 0.85rem;
+  font-size: 0.85rem;
+  color: #cfcfcf;
+  line-height: 1.5;
+}
+
+.socialRow {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.socialLink {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.socialLink:hover {
+  background: var(--brand-green);
+}
+
+.footerHeading {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #fff;
+  margin-bottom: 0.9rem;
+}
+
+.footerLinks {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.footerLinks a {
+  font-size: 0.85rem;
+  color: #cfcfcf;
+}
+
+.footerLinks a:hover {
+  color: var(--brand-green);
+}
+
+.appBadges {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.appBadge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 6px;
+  padding: 0.5rem 0.8rem;
+  font-size: 0.78rem;
+  color: #fff;
+  width: fit-content;
+}
+
+.appBadgeLabel {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.appBadgeLabel span:first-child {
+  font-size: 0.65rem;
+  color: #cfcfcf;
+}
+
+.copyright {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  text-align: center;
+  padding: 1.1rem 1.5rem;
+  font-size: 0.82rem;
+  color: #cfcfcf;
+}
+
+.copyright .accent {
+  color: var(--brand-green);
+}
+
+@media (max-width: 900px) {
+  .search {
+    display: none;
+  }
+
+  .footerGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 520px) {
+  .footerGrid {
+    grid-template-columns: 1fr;
+  }
+}

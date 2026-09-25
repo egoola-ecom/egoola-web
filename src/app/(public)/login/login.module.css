@@ -1,0 +1,222 @@
+.page {
+  display: flex;
+  min-height: calc(100vh - 4rem);
+}
+
+.promo {
+  display: none;
+  flex: 1 1 45%;
+  background: linear-gradient(
+    60deg,
+    var(--brand-charcoal) 0%,
+    var(--brand-green-deep) 100%
+  );
+  color: #fff;
+  padding: 3rem;
+  align-items: center;
+}
+
+.promoContent {
+  max-width: 26rem;
+  margin: 0 auto;
+}
+
+.logo {
+  display: inline-flex;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.logoDark {
+  color: #f2f2f2;
+}
+
+.logoGreen {
+  color: var(--brand-green);
+}
+
+.cardLogoDark {
+  color: #1a1a1a;
+}
+
+.tagline {
+  margin-top: 1.25rem;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: #e5e5e5;
+}
+
+.cardWrap {
+  flex: 1 1 55%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
+  background: #f7f7f8;
+}
+
+.card {
+  width: 100%;
+  max-width: 26rem;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+  padding: 2.25rem 2rem;
+}
+
+.cardLogo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.roleTabs {
+  display: flex;
+  background: #f1f2f4;
+  border-radius: 999px;
+  padding: 4px;
+  margin-bottom: 1.5rem;
+}
+
+.roleTab {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--brand-muted);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.roleTabActive {
+  background: var(--brand-green);
+  color: #fff;
+}
+
+.heading {
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 1.5rem;
+}
+
+.field {
+  margin-bottom: 1.1rem;
+}
+
+.labelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.35rem;
+}
+
+.label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.forgotLink {
+  font-size: 0.82rem;
+  color: var(--brand-green-dark);
+}
+
+.forgotLink:hover {
+  text-decoration: underline;
+}
+
+.input {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.95rem;
+  border: 1px solid var(--brand-border);
+  border-radius: 6px;
+  background: #fff;
+  color: #1a1a1a;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--brand-green);
+  box-shadow: 0 0 0 3px rgba(44, 208, 131, 0.15);
+}
+
+.passwordWrap {
+  position: relative;
+}
+
+.eyeButton {
+  position: absolute;
+  top: 50%;
+  right: 0.6rem;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--brand-muted);
+  cursor: pointer;
+  padding: 0.35rem;
+  display: flex;
+  align-items: center;
+}
+
+.rememberRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.rememberRow label {
+  font-size: 0.85rem;
+  color: #444;
+}
+
+.submit {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--brand-green);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(44, 208, 131, 0.35);
+  transition: background-color 0.15s ease;
+}
+
+.submit:hover {
+  background: var(--brand-green-dark);
+}
+
+.signup {
+  margin-top: 1.25rem;
+  text-align: center;
+  font-size: 0.88rem;
+  color: #555;
+}
+
+.signupLink {
+  color: var(--brand-green-dark);
+  font-weight: 500;
+}
+
+.signupLink:hover {
+  text-decoration: underline;
+}
+
+@media (min-width: 900px) {
+  .promo {
+    display: flex;
+  }
+
+  .cardLogo {
+    display: none;
+  }
+}

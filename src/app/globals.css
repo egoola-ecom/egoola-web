@@ -1,6 +1,16 @@
 :root {
   --background: #ffffff;
   --foreground: #1a1a1a;
+
+  /* Egoola brand palette (from the live site's frontEnd theme) */
+  --brand-green: #2cd083;
+  --brand-green-dark: #2cb776;
+  --brand-green-deep: #1ebf74;
+  --brand-charcoal: #414141;
+  --brand-charcoal-deep: #1f1f1f;
+  --brand-border: #e2e2e2;
+  --brand-muted: #6b7280;
+  --surface-muted: #f7f7f8;
 }
 
 html,

@@ -1,0 +1,153 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  background: radial-gradient(
+      circle at 15% 20%,
+      rgba(44, 208, 131, 0.18),
+      transparent 45%
+    ),
+    linear-gradient(160deg, var(--brand-charcoal-deep) 0%, #2b2b2b 60%, var(--brand-charcoal) 100%);
+}
+
+.card {
+  width: 100%;
+  max-width: 24rem;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  padding: 2.25rem 2rem;
+}
+
+.logoRow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+
+.logo {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.logoDark {
+  color: #1a1a1a;
+}
+
+.logoGreen {
+  color: var(--brand-green);
+}
+
+.badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--brand-charcoal);
+  background: #eee;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+
+.heading {
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 0.3rem;
+}
+
+.subheading {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--brand-muted);
+  margin-bottom: 1.5rem;
+}
+
+.field {
+  margin-bottom: 1.1rem;
+}
+
+.label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 0.35rem;
+}
+
+.input {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.95rem;
+  border: 1px solid var(--brand-border);
+  border-radius: 6px;
+  background: #fff;
+  color: #1a1a1a;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--brand-green);
+  box-shadow: 0 0 0 3px rgba(44, 208, 131, 0.15);
+}
+
+.passwordWrap {
+  position: relative;
+}
+
+.eyeButton {
+  position: absolute;
+  top: 50%;
+  right: 0.6rem;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: var(--brand-muted);
+  cursor: pointer;
+  padding: 0.35rem;
+  display: flex;
+  align-items: center;
+}
+
+.rememberRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.rememberRow label {
+  font-size: 0.85rem;
+  color: #444;
+}
+
+.submit {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--brand-green);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(44, 208, 131, 0.35);
+  transition: background-color 0.15s ease;
+}
+
+.submit:hover {
+  background: var(--brand-green-dark);
+}
+
+.footNote {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--brand-muted);
+}
