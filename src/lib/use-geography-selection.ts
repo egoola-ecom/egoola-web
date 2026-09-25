@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { GeographyOption, listCities, listCountries, listStates, listThanas } from "./geography-api";
+import {
+  GeographyOption,
+  listCityOptions,
+  listCountryOptions,
+  listStateOptions,
+  listThanaOptions,
+} from "./geography-api";
 
 /**
  * Cascading Country -> State -> City -> Thana selection. Picking a level
@@ -25,7 +31,7 @@ export function useGeographySelection(initial: {
   const [thanas, setThanas] = useState<GeographyOption[]>([]);
 
   useEffect(() => {
-    listCountries()
+    listCountryOptions()
       .then((res) => setCountries(res.results))
       .catch(() => setCountries([]));
   }, []);
@@ -37,7 +43,7 @@ export function useGeographySelection(initial: {
       setStates([]);
       return;
     }
-    listStates(countryId)
+    listStateOptions(countryId)
       .then((res) => setStates(res.results))
       .catch(() => setStates([]));
   }, [countryId]);
@@ -48,7 +54,7 @@ export function useGeographySelection(initial: {
       setCities([]);
       return;
     }
-    listCities(stateId)
+    listCityOptions(stateId)
       .then((res) => setCities(res.results))
       .catch(() => setCities([]));
   }, [stateId]);
@@ -59,7 +65,7 @@ export function useGeographySelection(initial: {
       setThanas([]);
       return;
     }
-    listThanas(cityId)
+    listThanaOptions(cityId)
       .then((res) => setThanas(res.results))
       .catch(() => setThanas([]));
   }, [cityId]);

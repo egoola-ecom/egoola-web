@@ -561,3 +561,44 @@
   border: none;
   cursor: pointer;
 }
+
+/* --- Tab bar (Geography: Country / State / City / Thana) --- */
+
+.tabBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  border-bottom: 1px solid var(--brand-border);
+  margin-bottom: 1.25rem;
+}
+
+.tab {
+  border: none;
+  background: transparent;
+  color: var(--brand-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.65rem 0.9rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+
+.tab:hover {
+  color: #1a1a1a;
+}
+
+.tabActive {
+  color: var(--brand-green-dark);
+  border-bottom-color: var(--brand-green);
+}
+
+.parentChain {
+  font-size: 0.8rem;
+  color: var(--brand-muted);
+}
+
+.codeText {
+  font-variant-numeric: tabular-nums;
+  color: var(--brand-muted);
+}
