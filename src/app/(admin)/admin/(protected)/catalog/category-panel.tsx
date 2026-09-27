@@ -1,21 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/modal";
 import {
   CategoryInput,
   CategoryItem,
+  CategoryParentChainItem,
   CategoryStatus,
   CategoryType,
   createCategory,
   deleteCategory,
+  getCategoryParentChain,
   listCategories,
-  listCategoryOptions,
   updateCategory,
 } from "@/lib/category-api";
 import { AuthError, clearSession } from "@/lib/auth";
 import { FieldErrors, parseFieldErrors, useManagedList } from "@/lib/use-managed-list";
+import { CategoryParentPicker } from "./category-parent-picker";
 import { ReadonlyField } from "../_shared/readonly-field";
 import styles from "../management.module.css";
 
@@ -28,56 +30,9 @@ function statusBadgeClass(status: CategoryStatus): string {
   return status === "active" ? styles.badgeGreen : styles.badgeGray;
 }
 
-/** Builds indented "Parent" <select> options from a flat same-type list —
- * a depth-first walk from the top-level roots, prefixing each child with
- * one "— " per nesting level. When editing, `excludeId` and its whole
- * subtree are dropped so the picker can't offer a choice the server would
- * reject as a cycle. */
-function buildParentOptions(
-  categories: CategoryItem[],
-  excludeId?: number,
-): { id: number; label: string }[] {
-  const excluded = new Set<number>();
-  if (excludeId != null) {
-    excluded.add(excludeId);
-    let added = true;
-    while (added) {
-      added = false;
-      for (const c of categories) {
-        if (c.parent != null && excluded.has(c.parent) && !excluded.has(c.id)) {
-          excluded.add(c.id);
-          added = true;
-        }
-      }
-    }
-  }
-
-  const byParent = new Map<number | null, CategoryItem[]>();
-  for (const c of categories) {
-    if (excluded.has(c.id)) continue;
-    const siblings = byParent.get(c.parent) ?? [];
-    siblings.push(c);
-    byParent.set(c.parent, siblings);
-  }
-  for (const siblings of byParent.values()) {
-    siblings.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
-  }
-
-  const result: { id: number; label: string }[] = [];
-  function walk(parentId: number | null, depth: number) {
-    for (const c of byParent.get(parentId) ?? []) {
-      result.push({ id: c.id, label: `${"— ".repeat(depth)}${c.name}` });
-      walk(c.id, depth + 1);
-    }
-  }
-  walk(null, 0);
-  return result;
-}
-
 function CategoryForm({
   type,
   initial,
-  parentOptions,
   fieldErrors,
   formError,
   submitting,
@@ -86,7 +41,6 @@ function CategoryForm({
 }: {
   type: CategoryType;
   initial?: CategoryItem | null;
-  parentOptions: { id: number; label: string }[];
   fieldErrors: FieldErrors;
   formError: string | null;
   submitting: boolean;
@@ -95,15 +49,15 @@ function CategoryForm({
 }) {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(initial?.image_url ?? null);
+  const [parentId, setParentId] = useState<number | null>(initial?.parent ?? null);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const parentValue = String(data.get("parent") ?? "");
     onSubmit({
       type,
       name: String(data.get("name") ?? ""),
-      parent: parentValue ? Number(parentValue) : null,
+      parent: parentId,
       sort_order: Number(data.get("sort_order") ?? 0),
       status: (data.get("status") as CategoryStatus) ?? "active",
       image: imageFile,
@@ -155,23 +109,13 @@ function CategoryForm({
           {fieldErrors.name?.[0] && <p className={styles.fieldError}>{fieldErrors.name[0]}</p>}
         </div>
 
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="parent">
-            Parent category
-          </label>
-          <select
-            id="parent"
-            name="parent"
-            className={styles.select}
-            defaultValue={initial?.parent != null ? String(initial.parent) : ""}
-          >
-            <option value="">No parent (top-level)</option>
-            {parentOptions.map((opt) => (
-              <option key={opt.id} value={opt.id}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+        <div className={styles.formGridFull}>
+          <CategoryParentPicker
+            type={type}
+            value={parentId}
+            excludeId={initial?.id}
+            onChange={setParentId}
+          />
           {fieldErrors.parent?.[0] && (
             <p className={styles.fieldError}>{fieldErrors.parent[0]}</p>
           )}
@@ -235,21 +179,22 @@ export function CategoryPanel({ type }: { type: CategoryType }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [allOfType, setAllOfType] = useState<CategoryItem[]>([]);
-
-  useEffect(() => {
-    listCategoryOptions(type)
-      .then((res) => setAllOfType(res.results))
-      .catch(() => setAllOfType([]));
-  }, [type]);
-
-  const parentNameById = useMemo(
-    () => new Map(allOfType.map((c) => [c.id, c.name])),
-    [allOfType],
-  );
 
   const { items, count, loading, error, offset, setOffset, pageSize, refetch } =
     useManagedList<CategoryItem>(listCategories, search, { type, status: statusFilter });
+
+  // Batches every category id on the current page into one parent-chain
+  // call, re-fetched whenever the page's items change (new page, search,
+  // filter, or after a create/edit/delete refetch).
+  const [parentChains, setParentChains] = useState<Map<number, CategoryParentChainItem>>(
+    new Map(),
+  );
+
+  useEffect(() => {
+    getCategoryParentChain(items.map((item) => item.id))
+      .then((rows) => setParentChains(new Map(rows.map((row) => [row.id, row]))))
+      .catch(() => setParentChains(new Map()));
+  }, [items]);
 
   const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
   const [editingItem, setEditingItem] = useState<CategoryItem | null>(null);
@@ -266,18 +211,11 @@ export function CategoryPanel({ type }: { type: CategoryType }) {
     return false;
   }
 
-  function refetchAll() {
-    refetch();
-    listCategoryOptions(type)
-      .then((res) => setAllOfType(res.results))
-      .catch(() => {});
-  }
-
   async function handleDeleteClick(item: CategoryItem) {
     if (!window.confirm(`Delete category "${item.name}"? This cannot be undone.`)) return;
     try {
       await deleteCategory(item.id);
-      refetchAll();
+      refetch();
     } catch (err) {
       if (!handleAuthError(err)) {
         window.alert("Couldn't delete this category. Please try again.");
@@ -296,7 +234,7 @@ export function CategoryPanel({ type }: { type: CategoryType }) {
         await updateCategory(editingItem.id, input);
       }
       setModalMode(null);
-      refetchAll();
+      refetch();
     } catch (err) {
       if (!handleAuthError(err)) {
         const { fieldErrors: fe, message } = parseFieldErrors(err);
@@ -310,7 +248,6 @@ export function CategoryPanel({ type }: { type: CategoryType }) {
 
   const totalPages = Math.max(1, Math.ceil(count / pageSize));
   const currentPage = Math.floor(offset / pageSize) + 1;
-  const parentOptions = buildParentOptions(allOfType, editingItem?.id);
 
   return (
     <div>
@@ -357,7 +294,8 @@ export function CategoryPanel({ type }: { type: CategoryType }) {
           <thead>
             <tr>
               <th>Name</th>
-              <th>Parent</th>
+              <th>Immediate Parent</th>
+              <th>Parent Chain</th>
               <th>Sort order</th>
               <th>Status</th>
               <th></th>
@@ -366,13 +304,13 @@ export function CategoryPanel({ type }: { type: CategoryType }) {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className={styles.stateRow}>
+                <td colSpan={6} className={styles.stateRow}>
                   Loading…
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={5} className={styles.stateRow}>
+                <td colSpan={6} className={styles.stateRow}>
                   No categories found.
                 </td>
               </tr>
@@ -388,8 +326,20 @@ export function CategoryPanel({ type }: { type: CategoryType }) {
                       <span className={styles.primaryText}>{item.name}</span>
                     </div>
                   </td>
+                  <td className={styles.secondaryText}>
+                    {item.parent == null
+                      ? "—"
+                      : (() => {
+                          const parents = parentChains.get(item.id)?.parents;
+                          if (!parents) return "…";
+                          return parents[parents.length - 1]?.name ?? "—";
+                        })()}
+                  </td>
                   <td className={styles.parentChain}>
-                    {item.parent != null ? (parentNameById.get(item.parent) ?? `#${item.parent}`) : "—"}
+                    {item.parent == null
+                      ? "—"
+                      : (parentChains.get(item.id)?.parents.map((p) => p.name).join(" › ") ??
+                        "…")}
                   </td>
                   <td className={styles.codeText}>{item.sort_order}</td>
                   <td>
@@ -459,7 +409,6 @@ export function CategoryPanel({ type }: { type: CategoryType }) {
           <CategoryForm
             type={type}
             initial={editingItem}
-            parentOptions={parentOptions}
             fieldErrors={fieldErrors}
             formError={formError}
             submitting={submitting}

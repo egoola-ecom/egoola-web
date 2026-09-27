@@ -647,3 +647,48 @@
   flex-shrink: 0;
   background: var(--surface-muted);
 }
+
+/* --- Category parent tree picker --- */
+
+.treeBox {
+  margin-top: 0.5rem;
+  max-height: 14rem;
+  overflow-y: auto;
+  border: 1px solid var(--brand-border);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.treeRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.86rem;
+  color: #1a1a1a;
+  cursor: pointer;
+}
+
+.treeRow:hover {
+  background: var(--surface-muted);
+}
+
+.treeRowSelected {
+  background: rgba(44, 208, 131, 0.14);
+  font-weight: 600;
+}
+
+.treeToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  flex-shrink: 0;
+  color: var(--brand-muted);
+}
+
+.treeEmpty {
+  padding: 0.7rem 0.9rem;
+  font-size: 0.84rem;
+  color: var(--brand-muted);
+}
