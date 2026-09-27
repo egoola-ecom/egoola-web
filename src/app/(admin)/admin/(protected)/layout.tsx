@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: "/admin/sellers", label: "Sellers" },
   { href: "/admin/buyers", label: "Buyers" },
   { href: "/admin/geography", label: "Geography" },
+  { href: "/admin/catalog", label: "Catalog" },
 ];
 
 export default function AdminProtectedLayout({
