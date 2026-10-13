@@ -17,8 +17,8 @@ export default async function ListingsPage({
         <div>
           <h1 className={styles.title}>All Listings</h1>
           <p className={styles.subtitle}>
-            Every product and service listing, from admins and sellers. Open one to see its details,
-            decide on it and read its history.
+            Every product listing, from admins and sellers. Open one to see its details, decide on it
+            and read its history. Service offers are in Gigs.
           </p>
         </div>
       </div>

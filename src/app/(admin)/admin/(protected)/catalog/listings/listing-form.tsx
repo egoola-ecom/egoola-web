@@ -6,12 +6,9 @@ import { AttributeItem } from "@/lib/attribute-api";
 import { resolveMediaUrl } from "@/lib/env";
 import { publicGeographyLoaders } from "@/lib/geography-api";
 import {
-  ListingCatalogType,
   ListingFormInitial,
   ListingInput,
-  ListingPostedByRole,
   ListingPriceTierInput,
-  ListingPriceType,
   ListingStatus,
   ListingType,
 } from "@/lib/listing-api";
@@ -22,10 +19,11 @@ import {
   LISTING_MEDIA_MAX_PER_REQUEST,
   LISTING_MEDIA_TYPES,
 } from "@/lib/seller-listing-api";
+import { ThumbnailControl } from "@/components/thumbnail-control";
+import { ActorType } from "@/lib/auth";
 import { useGeographySelection } from "@/lib/use-geography-selection";
 import { FieldErrors } from "@/lib/use-managed-list";
 import { GeographyFields } from "../../_shared/geography-fields";
-import { fromLocalInput, toLocalInput } from "../../_shared/datetime";
 import { CategoryParentPicker } from "../category-parent-picker";
 import {
   BrandOption,
@@ -37,10 +35,8 @@ import { SellerCategoryPicker } from "./seller-category-picker";
 import { SkuEditor } from "./sku-editor";
 import { SkuState, buildSkuPayload, initialSkuState, variantLabel } from "./sku-model";
 import {
-  CATALOG_TYPE_OPTIONS,
   LISTING_STATUS_OPTIONS,
   LISTING_TYPE_OPTIONS,
-  POSTED_BY_ROLE_OPTIONS,
   statusNeedsNote,
 } from "./listing-utils";
 import { SpecRow, blankSpecRow, sameSpecs, specsToObject, toSpecRows } from "./spec-rows";
@@ -52,6 +48,20 @@ export interface ListingFormValues {
   input: ListingInput;
   files: File[];
   deleteIds: number[];
+  /** Create only: the thumbnail picked before the first save. The parent
+   * uploads it right after the listing exists (the thumbnail has its own
+   * endpoint and is never part of create or PATCH). */
+  thumbnail: File | null;
+}
+
+/** How the edit form saves the thumbnail on its own (immediately when a file
+ * is chosen). The admin and the seller panel use different endpoints. */
+export interface ListingThumbnailHandlers {
+  actorType: ActorType;
+  loginPath: string;
+  upload: (file: File) => Promise<{ image_url: string }>;
+  remove: () => Promise<void>;
+  onFailure?: (err: unknown) => string | null;
 }
 
 interface TierRow {
@@ -78,7 +88,6 @@ function toTierRows(initial?: ListingFormInitial | null): TierRow[] {
 /** Keys the form shows an error beside. Anything else the server complains
  * about is listed in the banner, so an error is never swallowed. */
 const PLACED_ERROR_KEYS = new Set([
-  "catalog_type",
   "listing_type",
   "title",
   "title_bn",
@@ -87,7 +96,6 @@ const PLACED_ERROR_KEYS = new Set([
   "category",
   "seller",
   "buyer",
-  "posted_by_role",
   "brand",
   "model",
   "origin",
@@ -101,13 +109,6 @@ const PLACED_ERROR_KEYS = new Set([
   "condition_note",
   "condition_note_bn",
   "attributes",
-  "price_type",
-  "hourly_rate",
-  "delivery_days",
-  "available_from",
-  "available_to",
-  "package_includes",
-  "package_includes_bn",
   "country",
   "state",
   "city",
@@ -126,14 +127,13 @@ function unplacedErrors(fieldErrors: FieldErrors): string[] {
 }
 
 function ownerKindOf(initial?: ListingFormInitial | null): ListingOwnerKind {
-  if (initial?.seller != null) return "seller";
-  if (initial?.buyer != null) return "buyer";
-  return "none";
+  return initial?.seller != null ? "seller" : "none";
 }
 
-/** Create / edit form for a listing. Create mode also offers an initial
- * status (the server defaults an Admin-created listing to approved); edit
- * mode leaves status alone — moderation lives on the details page. */
+/** Create / edit form for a PRODUCT listing (a service offer is a gig and has
+ * its own form). Create mode also offers an initial status (the server
+ * defaults an Admin-created listing to approved); edit mode leaves status
+ * alone — moderation lives on the details page. */
 export function ListingForm({
   mode,
   variant = "admin",
@@ -143,6 +143,7 @@ export function ListingForm({
   submitting,
   onCancel,
   onSubmit,
+  thumbnail,
 }: {
   mode: "create" | "edit";
   /** "seller" is the seller panel's form: no owner, status or currency, the
@@ -155,17 +156,13 @@ export function ListingForm({
   submitting: boolean;
   onCancel: () => void;
   onSubmit: (values: ListingFormValues) => void;
+  /** Edit mode: lets the thumbnail control save at once. */
+  thumbnail?: ListingThumbnailHandlers;
 }) {
-  const [catalogType, setCatalogType] = useState<ListingCatalogType>(
-    initial?.catalog_type ?? "product",
-  );
   const [categoryId, setCategoryId] = useState<number | null>(initial?.category ?? null);
   const isSeller = variant === "seller";
   const [listingType, setListingType] = useState<ListingType | "">(
     initial?.listing_type ?? (isSeller ? "general" : ""),
-  );
-  const [postedByRole, setPostedByRole] = useState<ListingPostedByRole | "">(
-    initial?.posted_by_role ?? "",
   );
   const [ownerKind, setOwnerKind] = useState<ListingOwnerKind>(ownerKindOf(initial));
   const [ownerId, setOwnerId] = useState<number | null>(initial?.seller ?? initial?.buyer ?? null);
@@ -173,8 +170,7 @@ export function ListingForm({
   const [measurementId, setMeasurementId] = useState<string>(
     initial?.measurement != null ? String(initial.measurement) : "",
   );
-  const [priceType, setPriceType] = useState<ListingPriceType | "">(initial?.price_type ?? "");
-  const [urgent, setUrgent] = useState(initial?.urgent ?? false);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [currency, setCurrency] = useState(initial?.currency ?? "BDT");
   const [skuState, setSkuState] = useState<SkuState>(() => initialSkuState(initial));
   // Row key of each `skus` item of the last save attempt, so a server error
@@ -225,13 +221,11 @@ export function ListingForm({
   const attachedBrandMissing =
     initial?.brand != null && !brands.some((brand) => brand.id === initial.brand);
 
-  const isProduct = catalogType === "product";
-  const brandRequired = isProduct && listingType === "brand";
+  const brandRequired = listingType === "brand";
   const sendsForReview =
     isSeller &&
     mode === "edit" &&
     (initial?.status === "rejected" || initial?.status === "changes_requested");
-  const showProductBasics = !isSeller || isProduct;
   const showTiers = !isSeller || listingType === "wholesale" || tiers.length > 0;
   const showConditionNote =
     !isSeller ||
@@ -240,18 +234,9 @@ export function ListingForm({
     Boolean(initial?.condition_note_bn);
   const keptMediaCount = (initial?.media ?? []).filter((m) => !deleteIds.has(m.id)).length;
 
-  function changeCatalogType(next: ListingCatalogType) {
-    if (next === catalogType) return;
-    setCatalogType(next);
-    // Categories belong to one type, so the old pick no longer applies.
-    setCategoryId(null);
-  }
-
   function changeOwner(kind: ListingOwnerKind, id: number | null) {
     setOwnerKind(kind);
     setOwnerId(id);
-    if (kind === "seller") setPostedByRole("seller_offer");
-    if (kind === "buyer") setPostedByRole("buyer_request");
   }
 
   function updateTier(index: number, patch: Partial<TierRow>) {
@@ -338,17 +323,17 @@ export function ListingForm({
 
     const input: ListingInput = {
       category: categoryId,
-      catalog_type: catalogType,
-      // A seller's service has no product format.
-      listing_type: isSeller && !isProduct ? null : listingType || null,
-      posted_by_role: postedByRole || null,
+      catalog_type: "product",
+      listing_type: listingType || null,
+      // A product with an owner is that seller's offer; without one it is
+      // simply an admin listing. (A buyer's request is a job, not a product.)
+      posted_by_role: ownerKind === "seller" ? "seller_offer" : null,
       seller: ownerKind === "seller" ? ownerId : null,
-      buyer: ownerKind === "buyer" ? ownerId : null,
       title: String(data.get("title") ?? "").trim(),
       title_bn: text("title_bn"),
       description: String(data.get("description") ?? "").trim(),
       description_bn: text("description_bn"),
-      brand: brandId && showProductBasics ? Number(brandId) : null,
+      brand: brandId ? Number(brandId) : null,
       model: text("model"),
       origin: text("origin"),
       origin_bn: text("origin_bn"),
@@ -378,25 +363,14 @@ export function ListingForm({
     // On update, `skus` is left out when no SKU changed.
     if (sku.skus) input.skus = sku.skus;
 
-    if (isProduct) {
-      input.min_order_qty = whole("min_order_qty");
-      input.measurement = measurementId ? Number(measurementId) : null;
-      input.condition_note = text("condition_note");
-      input.condition_note_bn = text("condition_note_bn");
-      if (specRows) {
-        const specs = specsToObject(specRows);
-        // Only a real change is sent, so an untouched form never rewrites them.
-        if (!sameSpecs(specs, initial?.attributes)) input.attributes = specs;
-      }
-    } else {
-      input.price_type = priceType || null;
-      input.hourly_rate = priceType === "hourly" ? text("hourly_rate") : null;
-      input.delivery_days = whole("delivery_days");
-      input.urgent = urgent;
-      input.package_includes = text("package_includes");
-      input.package_includes_bn = text("package_includes_bn");
-      input.available_from = fromLocalInput(String(data.get("available_from") ?? ""));
-      input.available_to = fromLocalInput(String(data.get("available_to") ?? ""));
+    input.min_order_qty = whole("min_order_qty");
+    input.measurement = measurementId ? Number(measurementId) : null;
+    input.condition_note = text("condition_note");
+    input.condition_note_bn = text("condition_note_bn");
+    if (specRows) {
+      const specs = specsToObject(specRows);
+      // Only a real change is sent, so an untouched form never rewrites them.
+      if (!sameSpecs(specs, initial?.attributes)) input.attributes = specs;
     }
 
     if (mode === "create" && initialStatus && !isSeller) {
@@ -415,7 +389,12 @@ export function ListingForm({
       if (sendsForReview && message) input.note = message;
     }
 
-    onSubmit({ input, files: newFiles, deleteIds: Array.from(deleteIds) });
+    onSubmit({
+      input,
+      files: newFiles,
+      deleteIds: Array.from(deleteIds),
+      thumbnail: mode === "create" ? thumbnailFile : null,
+    });
   }
 
   /** "…Update the existing listing instead. (listing #681)": the number
@@ -454,26 +433,6 @@ export function ListingForm({
         </p>
 
         <div className={styles.field}>
-          <label className={styles.label} htmlFor="listing-catalog-type">
-            Catalog type
-          </label>
-          <select
-            id="listing-catalog-type"
-            className={styles.select}
-            value={catalogType}
-            onChange={(event) => changeCatalogType(event.target.value as ListingCatalogType)}
-          >
-            {CATALOG_TYPE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          {err("catalog_type")}
-        </div>
-
-        {(!isSeller || isProduct) && (
-        <div className={styles.field}>
           <label className={styles.label} htmlFor="listing-type">
             Listing format
           </label>
@@ -492,7 +451,6 @@ export function ListingForm({
           </select>
           {err("listing_type")}
         </div>
-        )}
 
         <div className={`${styles.field} ${styles.formGridFull}`}>
           <label className={styles.label} htmlFor="listing-title">
@@ -553,15 +511,13 @@ export function ListingForm({
         <div className={styles.formGridFull}>
           {isSeller ? (
             <SellerCategoryPicker
-              key={catalogType}
-              type={catalogType}
+              type="product"
               value={categoryId}
               onChange={setCategoryId}
             />
           ) : (
             <CategoryParentPicker
-              key={catalogType}
-              type={catalogType}
+              type="product"
               value={categoryId}
               onChange={setCategoryId}
               label="Category"
@@ -575,34 +531,12 @@ export function ListingForm({
 
         {!isSeller && (
           <>
-        <ListingOwnerPicker kind={ownerKind} ownerId={ownerId} onChange={changeOwner} />
-        {err("seller")}
-        {err("buyer")}
-
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="listing-posted-by-role">
-            Posted as
-          </label>
-          <select
-            id="listing-posted-by-role"
-            className={styles.select}
-            value={postedByRole}
-            onChange={(event) => setPostedByRole(event.target.value as ListingPostedByRole | "")}
-          >
-            <option value="">Not set</option>
-            {POSTED_BY_ROLE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          {err("posted_by_role")}
-        </div>
+            <ListingOwnerPicker kind={ownerKind} ownerId={ownerId} onChange={changeOwner} />
+            {err("seller")}
+            {err("buyer")}
           </>
         )}
 
-        {showProductBasics && (
-          <>
         <p className={styles.sectionDivider}>Brand &amp; details</p>
 
         <div className={styles.field}>
@@ -652,8 +586,6 @@ export function ListingForm({
             {err(name)}
           </div>
         ))}
-          </>
-        )}
 
         <p className={styles.sectionDivider}>Pricing &amp; stock (SKUs)</p>
 
@@ -769,8 +701,6 @@ export function ListingForm({
         </div>
         )}
 
-        {isProduct ? (
-          <>
             <p className={styles.sectionDivider}>Product details</p>
 
             <div className={styles.field}>
@@ -902,120 +832,6 @@ export function ListingForm({
               )}
               {err("attributes")}
             </div>
-          </>
-        ) : (
-          <>
-            <p className={styles.sectionDivider}>Service details</p>
-
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor="listing-price-type">
-                Price type
-              </label>
-              <select
-                id="listing-price-type"
-                className={styles.select}
-                value={priceType}
-                onChange={(event) => setPriceType(event.target.value as ListingPriceType | "")}
-              >
-                <option value="">Not set</option>
-                <option value="fixed">Fixed</option>
-                <option value="hourly">Hourly</option>
-              </select>
-              {err("price_type")}
-            </div>
-            {priceType === "hourly" && (
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="listing-hourly-rate">
-                  Hourly rate
-                </label>
-                <input
-                  id="listing-hourly-rate"
-                  name="hourly_rate"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className={styles.input}
-                  defaultValue={initial?.hourly_rate ?? ""}
-                />
-                {err("hourly_rate")}
-              </div>
-            )}
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor="listing-delivery-days">
-                Delivery days
-              </label>
-              <input
-                id="listing-delivery-days"
-                name="delivery_days"
-                type="number"
-                min="0"
-                className={styles.input}
-                defaultValue={initial?.delivery_days ?? ""}
-              />
-              {err("delivery_days")}
-            </div>
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor="listing-available-from">
-                Available from
-              </label>
-              <input
-                id="listing-available-from"
-                name="available_from"
-                type="datetime-local"
-                className={styles.input}
-                defaultValue={toLocalInput(initial?.available_from)}
-              />
-              {err("available_from")}
-            </div>
-            <div className={styles.field}>
-              <label className={styles.label} htmlFor="listing-available-to">
-                Available to
-              </label>
-              <input
-                id="listing-available-to"
-                name="available_to"
-                type="datetime-local"
-                className={styles.input}
-                defaultValue={toLocalInput(initial?.available_to)}
-              />
-              {err("available_to")}
-            </div>
-            <div className={styles.checkboxField}>
-              <input
-                id="listing-urgent"
-                type="checkbox"
-                checked={urgent}
-                onChange={(event) => setUrgent(event.target.checked)}
-              />
-              <label htmlFor="listing-urgent">Urgent</label>
-            </div>
-            <div className={`${styles.field} ${styles.formGridFull}`}>
-              <label className={styles.label} htmlFor="listing-package-includes">
-                Package includes
-              </label>
-              <textarea
-                id="listing-package-includes"
-                name="package_includes"
-                className={styles.textarea}
-                defaultValue={initial?.package_includes ?? ""}
-              />
-              {err("package_includes")}
-            </div>
-            <div className={`${styles.field} ${styles.formGridFull}`}>
-              <label className={styles.label} htmlFor="listing-package-includes-bn">
-                Package includes in Bangla (optional)
-              </label>
-              <textarea
-                id="listing-package-includes-bn"
-                name="package_includes_bn"
-                lang="bn"
-                className={styles.textarea}
-                defaultValue={initial?.package_includes_bn ?? ""}
-              />
-              {err("package_includes_bn")}
-            </div>
-          </>
-        )}
 
         <p className={styles.sectionDivider}>Location</p>
         <div className={styles.formGridFull}>
@@ -1024,6 +840,33 @@ export function ListingForm({
           {err("state")}
           {err("city")}
           {err("thana")}
+        </div>
+
+        <p className={styles.sectionDivider}>Thumbnail</p>
+        <div className={styles.formGridFull}>
+          {mode === "create" ? (
+            <ThumbnailControl
+              mode="staged"
+              imageUrl={null}
+              actorType={isSeller ? "seller" : "admin"}
+              loginPath={isSeller ? "/login" : "/admin/login"}
+              file={thumbnailFile}
+              onFileChange={setThumbnailFile}
+              disabled={submitting}
+            />
+          ) : thumbnail ? (
+            <ThumbnailControl
+              mode="live"
+              imageUrl={initial?.image_url ?? null}
+              actorType={thumbnail.actorType}
+              loginPath={thumbnail.loginPath}
+              onUpload={thumbnail.upload}
+              onRemove={thumbnail.remove}
+              onFailure={thumbnail.onFailure}
+              disabled={submitting}
+            />
+          ) : null}
+          {err("image")}
         </div>
 
         <p className={styles.sectionDivider}>Media</p>

@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ListingDetail, getListing, syncListingMedia, updateListing } from "@/lib/listing-api";
+import {
+  ListingDetail,
+  deleteListingThumbnail,
+  getListing,
+  putListingThumbnail,
+  syncListingMedia,
+  updateListing,
+} from "@/lib/listing-api";
+import { ApiError } from "@/lib/api";
 import { AuthError, clearSession } from "@/lib/auth";
 import { FieldErrors, parseFieldErrors } from "@/lib/use-managed-list";
 import { ListingForm, ListingFormValues } from "../../listing-form";
@@ -12,7 +20,14 @@ import styles from "../../../../management.module.css";
  * button on the Listing Details page. Saving or cancelling returns to that
  * details page. Status is not editable here; moderation lives on the details
  * page. */
-export function ListingEditClient({ id }: { id: number }) {
+export function ListingEditClient({
+  id,
+  initialThumbnailError = null,
+}: {
+  id: number;
+  /** Set when the listing was just created but its thumbnail upload failed. */
+  initialThumbnailError?: string | null;
+}) {
   const router = useRouter();
   const [listing, setListing] = useState<ListingDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,7 +59,11 @@ export function ListingEditClient({ id }: { id: number }) {
       .catch((err) => {
         if (cancelled) return;
         if (!handleAuthError(err)) {
-          setLoadError("Couldn't load this listing. Please try again.");
+          setLoadError(
+            err instanceof ApiError && err.status === 404
+              ? "This listing was not found — it may have been deleted, or it is not a product."
+              : "Couldn't load this listing. Please try again.",
+          );
         }
       })
       .finally(() => {
@@ -105,10 +124,23 @@ export function ListingEditClient({ id }: { id: number }) {
         </div>
       </div>
 
+      {initialThumbnailError && (
+        <p className={styles.errorBanner}>
+          The listing was created, but its thumbnail was not uploaded: {initialThumbnailError} Choose
+          the picture again below.
+        </p>
+      )}
+
       <div className={styles.detailCard}>
         <ListingForm
           mode="edit"
           initial={listing}
+          thumbnail={{
+            actorType: "admin",
+            loginPath: "/admin/login",
+            upload: (file) => putListingThumbnail(id, file),
+            remove: () => deleteListingThumbnail(id),
+          }}
           fieldErrors={fieldErrors}
           formError={formError}
           submitting={submitting}

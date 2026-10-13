@@ -22,24 +22,12 @@ export function toSellerInput(input: ListingInput): SellerListingInput {
 }
 
 const PLACE_KEYS = ["country", "state", "city", "thana"] as const;
-const DATE_KEYS = ["available_from", "available_to"] as const;
-const AMOUNT_KEYS = ["hourly_rate"] as const;
 
 /** Blank values compare equal: the server returns null for what the form
  * shows as "". */
 function norm(value: unknown): string {
   if (value == null || value === "") return "";
   return JSON.stringify(value);
-}
-
-function sameInstant(a: unknown, b: unknown): boolean {
-  if (!a || !b) return !a && !b;
-  return new Date(String(a)).getTime() === new Date(String(b)).getTime();
-}
-
-function sameAmount(a: unknown, b: unknown): boolean {
-  if (a == null || a === "" || b == null || b === "") return (a ?? "") === (b ?? "");
-  return Number(a) === Number(b);
 }
 
 /** A tier as the server holds it vs as the form sends it: the server repeats
@@ -96,13 +84,6 @@ export function sellerChanges(
       if (placeChanged) changed[key] = value;
     } else if (key === "price_tiers") {
       if (!sameTiers(value as ListingPriceTierInput[], saved.price_tiers)) changed[key] = value;
-    } else if ((DATE_KEYS as readonly string[]).includes(key)) {
-      if (!sameInstant(value, current[key])) changed[key] = value;
-    } else if ((AMOUNT_KEYS as readonly string[]).includes(key)) {
-      if (!sameAmount(value, current[key])) changed[key] = value;
-    } else if (key === "urgent") {
-      // The server keeps "not set" for a listing that never had it ticked.
-      if (Boolean(value) !== Boolean(current[key])) changed[key] = value;
     } else if (norm(value) !== norm(current[key])) {
       changed[key] = value;
     }

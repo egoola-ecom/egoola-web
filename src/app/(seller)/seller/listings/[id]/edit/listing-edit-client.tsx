@@ -11,7 +11,9 @@ import {
 import { ApiError } from "@/lib/api";
 import {
   SellerListingDetail,
+  deleteSellerListingThumbnail,
   getSellerListing,
+  putSellerListingThumbnail,
   syncSellerListingMedia,
   updateSellerListing,
 } from "@/lib/seller-listing-api";
@@ -28,9 +30,12 @@ import { SellerStatusChip, needsFixing, useListingFailure } from "../../listing-
 export function ListingEditClient({
   id,
   initialMediaError,
+  initialThumbnailError,
 }: {
   id: number;
   initialMediaError: string | null;
+  /** Set when the product was just created but its thumbnail upload failed. */
+  initialThumbnailError: string | null;
 }) {
   const router = useRouter();
   const fail = useListingFailure();
@@ -45,7 +50,9 @@ export function ListingEditClient({
   const [notice, setNotice] = useState<string | null>(
     initialMediaError
       ? `The listing was created, but its files were not uploaded: ${initialMediaError} Add them again below.`
-      : null,
+      : initialThumbnailError
+        ? `The listing was created, but its thumbnail was not uploaded: ${initialThumbnailError} Choose the picture again below.`
+        : null,
   );
 
   const load = useCallback(async () => {
@@ -113,6 +120,31 @@ export function ListingEditClient({
     }
   }
 
+  /** The thumbnail saves at once. The answer carries the listing's status: a
+   * rejected / changes-requested product goes back to pending when its picture
+   * changes. Only that is updated here, so unsaved text in the form stays. */
+  async function uploadThumbnail(file: File) {
+    const result = await putSellerListingThumbnail(id, file);
+    setListing((current) =>
+      current
+        ? {
+            ...current,
+            image_path: result.image_path,
+            image_url: result.image_url,
+            status: result.status,
+          }
+        : current,
+    );
+    return result;
+  }
+
+  async function removeThumbnail() {
+    await deleteSellerListingThumbnail(id);
+    setListing((current) =>
+      current ? { ...current, image_path: null, image_url: null } : current,
+    );
+  }
+
   if (loading) return <p className={management.stateRow}>Loading…</p>;
 
   if (loadError || !listing) {
@@ -169,6 +201,13 @@ export function ListingEditClient({
           submitting={submitting}
           onCancel={() => router.push(`/seller/listings/${id}`)}
           onSubmit={handleSubmit}
+          thumbnail={{
+            actorType: "seller",
+            loginPath: "/login",
+            upload: uploadThumbnail,
+            remove: removeThumbnail,
+            onFailure: fail,
+          }}
         />
       </div>
     </div>

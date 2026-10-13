@@ -8,16 +8,20 @@ import {
   ListingForm,
   ListingFormValues,
 } from "@/app/(admin)/admin/(protected)/catalog/listings/listing-form";
-import { createSellerListing, syncSellerListingMedia } from "@/lib/seller-listing-api";
+import {
+  createSellerListing,
+  putSellerListingThumbnail,
+  syncSellerListingMedia,
+} from "@/lib/seller-listing-api";
 import { FieldErrors, parseFieldErrors } from "@/lib/use-managed-list";
 import shell from "../../../seller-shell.module.css";
 import { toSellerInput } from "../listing-payload";
 import { useListingFailure } from "../listing-status";
 
-/** Create listing. One form for every kind (product or service, the six
- * product formats). The listing is always saved as pending and is the
- * seller's own; pictures go in a second request because multipart cannot
- * carry the nested SKUs and price tiers. */
+/** Create product. One form for the six product formats (a service offer is a
+ * gig). The listing is always saved as pending and is the seller's own;
+ * pictures go in a second request because multipart cannot carry the nested
+ * SKUs and price tiers, and the thumbnail in a third (its own endpoint). */
 export function ListingCreateClient() {
   const router = useRouter();
   const fail = useListingFailure();
@@ -25,7 +29,7 @@ export function ListingCreateClient() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
 
-  async function handleSubmit({ input, files }: ListingFormValues) {
+  async function handleSubmit({ input, files, thumbnail }: ListingFormValues) {
     setSubmitting(true);
     setFieldErrors({});
     setFormError(null);
@@ -34,6 +38,21 @@ export function ListingCreateClient() {
       const created = await createSellerListing(toSellerInput(input));
       createdId = created.id;
       if (files.length > 0) await syncSellerListingMedia(created.id, files, []);
+      if (thumbnail) {
+        try {
+          await putSellerListingThumbnail(created.id, thumbnail);
+        } catch (thumbnailErr) {
+          // The listing exists: stay on its edit page with the reason, so the
+          // seller can retry the picture without creating a second listing.
+          const reason =
+            parseFieldErrors(thumbnailErr).fieldErrors.image?.[0] ?? fail(thumbnailErr);
+          if (reason == null) return;
+          router.push(
+            `/seller/listings/${created.id}/edit?thumbnailError=${encodeURIComponent(reason)}`,
+          );
+          return;
+        }
+      }
       router.push(`/seller/listings/${created.id}?notice=created`);
     } catch (err) {
       if (createdId != null) {
@@ -63,7 +82,7 @@ export function ListingCreateClient() {
       </Link>
       <h1 className={shell.pageTitle}>Create listing</h1>
       <p className={shell.pageText}>
-        Add a product or a service. An admin checks every new listing before buyers see it.
+        Add a product. An admin checks every new listing before buyers see it.
       </p>
 
       <div className={management.detailCard}>

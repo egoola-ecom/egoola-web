@@ -6,6 +6,7 @@ import type {
   ListingInput,
   ListingListItem,
   ListingStatus,
+  ThumbnailResult,
 } from "./listing-api";
 
 // ---------------------------------------------------------------------------
@@ -15,6 +16,10 @@ import type {
 //   - Always the seller's own, never anybody else's (404).
 //   - A new listing is always `pending`. A seller never sends seller, buyer,
 //     posted_by_role, status or requested_at.
+//   - The cover picture (thumbnail, `image_url`) has its own endpoint:
+//     PUT / DELETE `{id}/thumbnail/`. It is NOT part of create or PATCH.
+//   - Products only: a service offer is a gig (`/seller/gigs/`) and a service
+//     sent here is a 400.
 //   - Price and stock live on SKUs. Create may use the price shortcut OR
 //     `skus`; an edit changes prices and stock only through `skus` with the
 //     SKU `id` (a plain `price` / `stock_qty` on update is a 400).
@@ -152,6 +157,23 @@ export function syncSellerListingMedia(id: number, files: File[], deleteIds: num
     method: "PATCH",
     body: formData,
   });
+}
+
+/** Sets or replaces the thumbnail of one of the seller's products (JPG, PNG
+ * or WEBP, up to 10 MB). On a rejected / changes-requested listing this also
+ * sends it back to `pending`, like any other save; the answer carries the
+ * listing's status so the screen can say so. */
+export function putSellerListingThumbnail(id: number, file: File) {
+  const formData = new FormData();
+  formData.append("image", file);
+  return authFetch<ThumbnailResult>("seller", `${LISTINGS_PATH}${id}/thumbnail/`, {
+    method: "PUT",
+    body: formData,
+  });
+}
+
+export function deleteSellerListingThumbnail(id: number) {
+  return authFetch<void>("seller", `${LISTINGS_PATH}${id}/thumbnail/`, { method: "DELETE" });
 }
 
 /** Lookup lists are small: one call (limit up to 1000) fills a dropdown. This

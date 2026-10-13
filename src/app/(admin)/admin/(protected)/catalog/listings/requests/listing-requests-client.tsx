@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/modal";
+import { RowThumbnail } from "@/components/thumbnail-control";
 import { getSeller } from "@/lib/accounts-api";
 import { apiErrorDetail } from "@/lib/api";
 import { BrandItem, listAllBrands } from "@/lib/brand-api";
@@ -23,7 +24,6 @@ import { useCursorList } from "@/lib/use-cursor-list";
 import { FieldErrors, parseFieldErrors } from "@/lib/use-managed-list";
 import { AuthError, clearSession } from "@/lib/auth";
 import {
-  CATALOG_TYPE_OPTIONS,
   LISTING_TYPE_OPTIONS,
   PriceDisplay,
   formatDateTime,
@@ -68,7 +68,6 @@ export function ListingRequestsClient() {
 
   const [search, setSearch] = useState("");
   const [seller, setSeller] = useState("");
-  const [catalogType, setCatalogType] = useState("");
   const [listingType, setListingType] = useState("");
   const [category, setCategory] = useState("");
   const [brand, setBrand] = useState("");
@@ -87,7 +86,6 @@ export function ListingRequestsClient() {
 
   const filters = {
     seller,
-    catalog_type: catalogType,
     listing_type: listingType,
     category,
     brand,
@@ -103,7 +101,6 @@ export function ListingRequestsClient() {
   const anyFilter = Boolean(
     debouncedSearch ||
       seller ||
-      catalogType ||
       listingType ||
       category ||
       brand ||
@@ -124,8 +121,8 @@ export function ListingRequestsClient() {
     listAllBrands()
       .then(setBrands)
       .catch(() => setBrands([]));
-    Promise.all([getCategoryTree({ type: "product" }), getCategoryTree({ type: "service" })])
-      .then(([products, services]) => setCategoryOptions(flatten([...products, ...services])))
+    getCategoryTree({ type: "product" })
+      .then((products) => setCategoryOptions(flatten(products)))
       .catch(() => setCategoryOptions([]));
   }, []);
   const brandNames = useMemo(() => new Map(brands.map((b) => [b.id, b.name])), [brands]);
@@ -326,19 +323,6 @@ export function ListingRequestsClient() {
           <SellerFilterPicker value={seller} onChange={setSeller} />
           <select
             className={styles.filterSelect}
-            aria-label="Filter by product or service"
-            value={catalogType}
-            onChange={(event) => setCatalogType(event.target.value)}
-          >
-            <option value="">Products &amp; services</option>
-            {CATALOG_TYPE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <select
-            className={styles.filterSelect}
             aria-label="Sort requests"
             value={ordering}
             onChange={(event) => setOrdering(event.target.value)}
@@ -464,6 +448,7 @@ export function ListingRequestsClient() {
                   }}
                 />
               </th>
+              <th></th>
               <th>Listing</th>
               <th>Seller</th>
               <th>Category</th>
@@ -475,13 +460,13 @@ export function ListingRequestsClient() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className={styles.stateRow}>
+                <td colSpan={8} className={styles.stateRow}>
                   Loading…
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={7} className={styles.stateRow}>
+                <td colSpan={8} className={styles.stateRow}>
                   {anyFilter
                     ? "No pending listings match these filters."
                     : "Nothing is waiting. New listings from sellers appear here."}
@@ -504,6 +489,9 @@ export function ListingRequestsClient() {
                       />
                     </td>
                     <td>
+                      <RowThumbnail url={item.image_url} />
+                    </td>
+                    <td>
                       <div className={styles.primaryText}>
                         {item.title}
                         {resubmitted && (
@@ -518,9 +506,10 @@ export function ListingRequestsClient() {
                       </div>
                       {item.title_bn && <div className={styles.secondaryText}>{item.title_bn}</div>}
                       <div className={styles.secondaryText}>
-                        {item.catalog_type === "service" ? "Service" : "Product"}
-                        {item.listing_type ? ` · ${listingTypeLabel(item.listing_type)}` : ""}
-                        {item.brand != null ? ` · ${brandNames.get(item.brand) ?? `#${item.brand}`}` : ""}
+                        {item.listing_type ? listingTypeLabel(item.listing_type) : ""}
+                        {item.brand != null
+                          ? `${item.listing_type ? " · " : ""}${brandNames.get(item.brand) ?? `#${item.brand}`}`
+                          : ""}
                       </div>
                     </td>
                     <td className={styles.secondaryText}>

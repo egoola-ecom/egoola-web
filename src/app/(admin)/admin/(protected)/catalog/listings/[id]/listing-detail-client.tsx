@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ThumbnailControl } from "@/components/thumbnail-control";
 import {
   ListingDetail,
   ListingStatusInput,
   deleteListing,
+  deleteListingThumbnail,
   getListing,
+  putListingThumbnail,
   updateListingStatus,
 } from "@/lib/listing-api";
 import { ApiError, apiErrorDetail } from "@/lib/api";
@@ -67,10 +70,11 @@ export function ListingDetailClient({
       .catch((err) => {
         if (cancelled) return;
         if (!handleAuthError(err)) {
-          // A deleted listing is a soft delete: its detail answers 404.
+          // A deleted listing is a soft delete: its detail answers 404, and so
+          // does the id of a gig (those open under Gigs).
           setLoadError(
             err instanceof ApiError && err.status === 404
-              ? "This listing doesn't exist any more — it may have been deleted."
+              ? "This listing was not found — it may have been deleted, or it is a gig (gigs are under Gigs)."
               : "Couldn't load this listing. Please try again.",
           );
         }
@@ -100,6 +104,16 @@ export function ListingDetailClient({
       }
     } finally {
       setModerating(false);
+    }
+  }
+
+  /** After a thumbnail change the content change log has a new row: load the
+   * listing again so it shows. The status never changes for an admin. */
+  async function refreshAfterThumbnail() {
+    try {
+      setListing(await getListing(id));
+    } catch (err) {
+      handleAuthError(err);
     }
   }
 
@@ -156,7 +170,7 @@ export function ListingDetailClient({
           <h1 className={styles.title}>{listing.title}</h1>
           {listing.title_bn && <p className={styles.subtitle}>{listing.title_bn}</p>}
           <p className={styles.subtitle}>
-            {listing.catalog_type === "service" ? "Service" : "Product"}
+            Product
             {listing.listing_type ? ` · ${listingTypeLabel(listing.listing_type)}` : ""}
             {listing.brand_name ? ` · ${listing.brand_name}` : ""}
           </p>
@@ -200,6 +214,19 @@ export function ListingDetailClient({
         submitting={moderating}
         onSubmit={handleModerationSubmit}
       />
+
+      <div className={styles.detailCard}>
+        <h2 className={styles.detailCardTitle}>Thumbnail</h2>
+        <ThumbnailControl
+          mode="live"
+          imageUrl={listing.image_url}
+          actorType="admin"
+          loginPath="/admin/login"
+          onUpload={(file) => putListingThumbnail(id, file)}
+          onRemove={() => deleteListingThumbnail(id)}
+          onChanged={() => void refreshAfterThumbnail()}
+        />
+      </div>
 
       <ListingChangeHistory logs={listing.info_change_logs ?? []} />
 

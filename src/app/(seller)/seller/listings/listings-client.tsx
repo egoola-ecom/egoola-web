@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import management from "@/app/(admin)/admin/(protected)/management.module.css";
+import { RowThumbnail } from "@/components/thumbnail-control";
 import {
-  CATALOG_TYPE_OPTIONS,
   LISTING_TYPE_OPTIONS,
   PriceDisplay,
   formatDateTime,
@@ -70,7 +70,6 @@ export function ListingsClient() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [status, setStatus] = useState("");
-  const [catalogType, setCatalogType] = useState("");
   const [listingType, setListingType] = useState("");
   const [category, setCategory] = useState("");
   const [brand, setBrand] = useState("");
@@ -96,8 +95,8 @@ export function ListingsClient() {
   }, [search]);
 
   useEffect(() => {
-    Promise.all([listSellerCategories("product"), listSellerCategories("service")])
-      .then(([products, services]) => setCategories([...products, ...services]))
+    listSellerCategories("product")
+      .then(setCategories)
       .catch(() => setCategories([]));
     listSellerBrands()
       .then(setBrands)
@@ -114,7 +113,6 @@ export function ListingsClient() {
   const filterKey = JSON.stringify([
     debouncedSearch,
     status,
-    catalogType,
     listingType,
     category,
     brand,
@@ -145,7 +143,6 @@ export function ListingsClient() {
     const filters: Record<string, string> = {
       search: debouncedSearch,
       status,
-      catalog_type: catalogType,
       listing_type: listingType,
       category,
       brand,
@@ -179,7 +176,6 @@ export function ListingsClient() {
   const anyFilter = [
     debouncedSearch,
     status,
-    catalogType,
     listingType,
     category,
     brand,
@@ -192,7 +188,6 @@ export function ListingsClient() {
   function clearFilters() {
     setSearch("");
     setStatus("");
-    setCatalogType("");
     setListingType("");
     setCategory("");
     setBrand("");
@@ -237,19 +232,6 @@ export function ListingsClient() {
           >
             <option value="">All statuses</option>
             {SELLER_STATUS_FILTER.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <select
-            className={management.filterSelect}
-            aria-label="Filter by product or service"
-            value={catalogType}
-            onChange={(event) => setCatalogType(event.target.value)}
-          >
-            <option value="">Products &amp; services</option>
-            {CATALOG_TYPE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
@@ -353,6 +335,7 @@ export function ListingsClient() {
         <table className={management.table}>
           <thead>
             <tr>
+              <th></th>
               <th>Listing</th>
               <th>Category</th>
               <th>Price</th>
@@ -364,13 +347,13 @@ export function ListingsClient() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className={management.stateRow}>
+                <td colSpan={7} className={management.stateRow}>
                   Loading…
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className={management.stateRow}>
+                <td colSpan={7} className={management.stateRow}>
                   {anyFilter ? (
                     "No listings match these filters."
                   ) : (
@@ -385,14 +368,18 @@ export function ListingsClient() {
               rows.map((item) => (
                 <tr key={item.id}>
                   <td>
+                    <RowThumbnail url={item.image_url} />
+                  </td>
+                  <td>
                     <Link href={`/seller/listings/${item.id}`} className={management.primaryText}>
                       {item.title}
                     </Link>
                     {item.title_bn && <div className={management.secondaryText}>{item.title_bn}</div>}
                     <div className={management.secondaryText}>
-                      {item.catalog_type === "service" ? "Service" : "Product"}
-                      {item.listing_type ? ` · ${listingTypeLabel(item.listing_type)}` : ""}
-                      {item.brand != null ? ` · ${brandNames.get(item.brand) ?? `#${item.brand}`}` : ""}
+                      {item.listing_type ? listingTypeLabel(item.listing_type) : ""}
+                      {item.brand != null
+                        ? `${item.listing_type ? " · " : ""}${brandNames.get(item.brand) ?? `#${item.brand}`}`
+                        : ""}
                     </div>
                   </td>
                   <td className={management.secondaryText}>

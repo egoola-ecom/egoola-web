@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { RowThumbnail } from "@/components/thumbnail-control";
 import { BrandItem, listAllBrands } from "@/lib/brand-api";
 import { getCategoryParentChain } from "@/lib/category-api";
 import {
@@ -17,7 +18,6 @@ import { notifyPendingListingsChanged } from "@/lib/pending-listing-count";
 import { AuthError, clearSession } from "@/lib/auth";
 import { FieldErrors, parseFieldErrors, useManagedList } from "@/lib/use-managed-list";
 import {
-  CATALOG_TYPE_OPTIONS,
   LISTING_STATUS_OPTIONS,
   LISTING_TYPE_OPTIONS,
   PriceDisplay,
@@ -35,15 +35,14 @@ const BULK_OPTIONS: { value: ListingBulkStatus; label: string }[] = [
   { value: "changes_requested", label: "Request changes" },
 ];
 
-/** The "Listings" tab inside the Catalog panel — every listing format and
- * services in one moderated list. Row actions open the read-only details
+/** All Listings — every PRODUCT format in one moderated list (service offers
+ * are gigs, in their own panel; buyer job requests are left out). Row actions open the read-only details
  * page (which owns status changes + history and links to the edit page);
  * the checkboxes here drive bulk moderation. */
 export function ListingsPanel({ initialStatus = "" }: { initialStatus?: ListingStatus | "" }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
-  const [catalogTypeFilter, setCatalogTypeFilter] = useState("");
   const [listingTypeFilter, setListingTypeFilter] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
   const [createdFrom, setCreatedFrom] = useState("");
@@ -55,7 +54,6 @@ export function ListingsPanel({ initialStatus = "" }: { initialStatus?: ListingS
   const { items, count, loading, error, offset, setOffset, pageSize, refetch } =
     useManagedList<ListingListItem>(listListings, search, {
       status: statusFilter || undefined,
-      catalog_type: catalogTypeFilter || undefined,
       listing_type: listingTypeFilter || undefined,
       brand: brandFilter || undefined,
       created_from: createdFrom || undefined,
@@ -249,19 +247,6 @@ export function ListingsPanel({ initialStatus = "" }: { initialStatus?: ListingS
           </button>
           <select
             className={styles.filterSelect}
-            aria-label="Filter by catalog type"
-            value={catalogTypeFilter}
-            onChange={(event) => setCatalogTypeFilter(event.target.value)}
-          >
-            <option value="">Products &amp; services</option>
-            {CATALOG_TYPE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <select
-            className={styles.filterSelect}
             aria-label="Filter by listing type"
             value={listingTypeFilter}
             onChange={(event) => setListingTypeFilter(event.target.value)}
@@ -395,6 +380,7 @@ export function ListingsPanel({ initialStatus = "" }: { initialStatus?: ListingS
                   onChange={toggleAllOnPage}
                 />
               </th>
+              <th></th>
               <th>Title</th>
               <th>Category</th>
               <th>Brand</th>
@@ -407,13 +393,13 @@ export function ListingsPanel({ initialStatus = "" }: { initialStatus?: ListingS
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} className={styles.stateRow}>
+                <td colSpan={9} className={styles.stateRow}>
                   Loading…
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={8} className={styles.stateRow}>
+                <td colSpan={9} className={styles.stateRow}>
                   No listings found.
                 </td>
               </tr>
@@ -429,12 +415,14 @@ export function ListingsPanel({ initialStatus = "" }: { initialStatus?: ListingS
                     />
                   </td>
                   <td>
+                    <RowThumbnail url={item.image_url} />
+                  </td>
+                  <td>
                     <div className={styles.primaryText}>{item.title}</div>
                     {item.title_bn && <div className={styles.secondaryText}>{item.title_bn}</div>}
-                    <div className={styles.secondaryText}>
-                      {item.catalog_type === "service" ? "Service" : "Product"}
-                      {item.listing_type ? ` · ${listingTypeLabel(item.listing_type)}` : ""}
-                    </div>
+                    {item.listing_type && (
+                      <div className={styles.secondaryText}>{listingTypeLabel(item.listing_type)}</div>
+                    )}
                   </td>
                   <td className={styles.secondaryText}>
                     {categoryNames[item.category] ?? `#${item.category}`}

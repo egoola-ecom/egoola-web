@@ -7,9 +7,15 @@ export default async function SellerListingEditPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ mediaError?: string }>;
+  searchParams: Promise<{ mediaError?: string; thumbnailError?: string }>;
 }) {
   const { id } = await params;
-  const { mediaError } = await searchParams;
-  return <ListingEditClient id={Number(id)} initialMediaError={mediaError ?? null} />;
+  const { mediaError, thumbnailError } = await searchParams;
+  return (
+    <ListingEditClient
+      id={Number(id)}
+      initialMediaError={mediaError ?? null}
+      initialThumbnailError={thumbnailError ?? null}
+    />
+  );
 }

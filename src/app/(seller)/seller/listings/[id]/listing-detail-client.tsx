@@ -4,8 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import management from "@/app/(admin)/admin/(protected)/management.module.css";
 import { listingTypeLabel } from "@/app/(admin)/admin/(protected)/catalog/listings/listing-utils";
+import { ThumbnailControl } from "@/components/thumbnail-control";
 import { ApiError } from "@/lib/api";
-import { SellerListingDetail, getSellerListing } from "@/lib/seller-listing-api";
+import {
+  SellerListingDetail,
+  deleteSellerListingThumbnail,
+  getSellerListing,
+  putSellerListingThumbnail,
+} from "@/lib/seller-listing-api";
 import shell from "../../../seller-shell.module.css";
 import { SellerStatusChip, needsFixing, useListingFailure } from "../listing-status";
 import { SellerListingView, StatusTimeline } from "../seller-listing-view";
@@ -87,6 +93,16 @@ export function ListingDetailClient({ id, notice }: { id: number; notice: string
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  /** After a thumbnail change: load the listing again, since a rejected one
+   * goes back to "waiting for review" when its picture changes. */
+  async function refresh() {
+    try {
+      setListing(await getSellerListing(id));
+    } catch (err) {
+      fail(err);
+    }
+  }
+
   if (loading) return <p className={management.stateRow}>Loading…</p>;
 
   if (error || !listing) {
@@ -110,7 +126,7 @@ export function ListingDetailClient({ id, notice }: { id: number; notice: string
         <div className={management.detailHeaderInfo}>
           <h1 className={shell.pageTitle}>{listing.title}</h1>
           <p className={shell.pageText} style={{ marginBottom: "0.5rem" }}>
-            {listing.catalog_type === "service" ? "Service" : "Product"}
+            Product
             {listing.listing_type ? ` · ${listingTypeLabel(listing.listing_type)}` : ""}
             {listing.brand_name ? ` · ${listing.brand_name}` : ""}
           </p>
@@ -127,6 +143,24 @@ export function ListingDetailClient({ id, notice }: { id: number; notice: string
 
       {notice && NOTICES[notice] && <p className={management.noticeBanner}>{NOTICES[notice]}</p>}
       <StatusBanner listing={listing} />
+      <div className={management.detailCard}>
+        <h2 className={management.detailCardTitle}>Thumbnail</h2>
+        <ThumbnailControl
+          mode="live"
+          imageUrl={listing.image_url}
+          actorType="seller"
+          loginPath="/login"
+          onUpload={(file) => putSellerListingThumbnail(id, file)}
+          onRemove={() => deleteSellerListingThumbnail(id)}
+          onFailure={fail}
+          onChanged={() => void refresh()}
+        />
+        {needsFixing(listing.status) && (
+          <p className={management.fieldHint}>
+            Changing the thumbnail sends this listing back to the admin for review.
+          </p>
+        )}
+      </div>
       <SellerListingView listing={listing} />
       <StatusTimeline listing={listing} />
     </div>

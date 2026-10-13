@@ -5,7 +5,6 @@ import management from "@/app/(admin)/admin/(protected)/management.module.css";
 import { ReadonlyField } from "@/app/(admin)/admin/(protected)/_shared/readonly-field";
 import {
   PriceDisplay,
-  formatAmount,
   formatDateTime,
   listingTypeLabel,
 } from "@/app/(admin)/admin/(protected)/catalog/listings/listing-utils";
@@ -40,10 +39,10 @@ function useListingNames(listing: SellerListingDetail) {
   const [place, setPlace] = useState<string>("");
 
   useEffect(() => {
-    listSellerCategories(listing.catalog_type)
+    listSellerCategories("product")
       .then(setCategories)
       .catch(() => setCategories([]));
-  }, [listing.catalog_type]);
+  }, []);
 
   useEffect(() => {
     if (listing.measurement == null) return;
@@ -129,7 +128,6 @@ export function StatusTimeline({ listing }: { listing: SellerListingDetail }) {
 /** Read-only details of one of the seller's listings. */
 export function SellerListingView({ listing }: { listing: SellerListingDetail }) {
   const names = useListingNames(listing);
-  const isProduct = listing.catalog_type === "product";
   const hasAttributes =
     listing.attributes != null &&
     typeof listing.attributes === "object" &&
@@ -140,7 +138,6 @@ export function SellerListingView({ listing }: { listing: SellerListingDetail })
       <div className={management.detailCard}>
         <h2 className={management.detailCardTitle}>Overview</h2>
         <div className={management.formGrid}>
-          <ReadonlyField label="Type" value={isProduct ? "Product" : "Service"} />
           <ReadonlyField label="Format" value={listingTypeLabel(listing.listing_type)} />
           <div className={management.formGridFull}>
             <ReadonlyField label="Category" value={names.category ?? `#${listing.category}`} />
@@ -214,53 +211,21 @@ export function SellerListingView({ listing }: { listing: SellerListingDetail })
       </div>
 
       <div className={management.detailCard}>
-        <h2 className={management.detailCardTitle}>{isProduct ? "Product details" : "Service details"}</h2>
+        <h2 className={management.detailCardTitle}>Product details</h2>
         <div className={management.formGrid}>
-          {isProduct ? (
-            <>
-              <ReadonlyField label="Brand" value={orDash(listing.brand_name)} />
-              <ReadonlyField label="Model" value={orDash(listing.model)} />
-              <ReadonlyField label="Origin" value={orDash(listing.origin)} />
-              <ReadonlyField label="Origin in Bangla" value={orDash(listing.origin_bn)} />
-              <ReadonlyField label="Warranty" value={orDash(listing.warranty)} />
-              <ReadonlyField label="Warranty in Bangla" value={orDash(listing.warranty_bn)} />
-              <ReadonlyField label="Minimum order quantity" value={orDash(listing.min_order_qty)} />
-              <ReadonlyField label="Measurement unit" value={orDash(names.measurement)} />
-              {(listing.condition_note || listing.condition_note_bn) && (
-                <div className={management.formGridFull}>
-                  <ReadonlyField label="Condition note" value={orDash(listing.condition_note)} />
-                  <ReadonlyField label="Condition note in Bangla" value={orDash(listing.condition_note_bn)} />
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <ReadonlyField label="Price type" value={orDash(listing.price_type)} />
-              {listing.price_type === "hourly" && (
-                <ReadonlyField
-                  label="Hourly rate"
-                  value={listing.hourly_rate ? formatAmount(listing.hourly_rate, listing.currency) : "—"}
-                />
-              )}
-              <ReadonlyField label="Delivery days" value={orDash(listing.delivery_days)} />
-              <ReadonlyField label="Urgent" value={listing.urgent ? "Yes" : "No"} />
-              <ReadonlyField
-                label="Available from"
-                value={listing.available_from ? formatDateTime(listing.available_from) : "—"}
-              />
-              <ReadonlyField
-                label="Available to"
-                value={listing.available_to ? formatDateTime(listing.available_to) : "—"}
-              />
-              <div className={management.formGridFull}>
-                <ReadonlyField label="Package includes" value={orDash(listing.package_includes)} />
-              </div>
-              {listing.package_includes_bn && (
-                <div className={management.formGridFull}>
-                  <ReadonlyField label="Package includes in Bangla" value={listing.package_includes_bn} />
-                </div>
-              )}
-            </>
+          <ReadonlyField label="Brand" value={orDash(listing.brand_name)} />
+          <ReadonlyField label="Model" value={orDash(listing.model)} />
+          <ReadonlyField label="Origin" value={orDash(listing.origin)} />
+          <ReadonlyField label="Origin in Bangla" value={orDash(listing.origin_bn)} />
+          <ReadonlyField label="Warranty" value={orDash(listing.warranty)} />
+          <ReadonlyField label="Warranty in Bangla" value={orDash(listing.warranty_bn)} />
+          <ReadonlyField label="Minimum order quantity" value={orDash(listing.min_order_qty)} />
+          <ReadonlyField label="Measurement unit" value={orDash(names.measurement)} />
+          {(listing.condition_note || listing.condition_note_bn) && (
+            <div className={management.formGridFull}>
+              <ReadonlyField label="Condition note" value={orDash(listing.condition_note)} />
+              <ReadonlyField label="Condition note in Bangla" value={orDash(listing.condition_note_bn)} />
+            </div>
           )}
           {hasAttributes && (
             <>

@@ -25,8 +25,6 @@ const KEY_LABELS: Record<string, string> = {
   condition_note: "Condition note",
   condition_note_bn: "Condition note (Bangla)",
   attributes: "Specifications",
-  price_type: "Price type",
-  hourly_rate: "Hourly rate",
   delivery_days: "Delivery days",
   urgent: "Urgent",
   package_includes: "Package includes",
@@ -44,6 +42,16 @@ const KEY_LABELS: Record<string, string> = {
   price_tiers: "Price tiers",
   skus: "Options and prices (SKUs)",
   media: "Pictures and files",
+  thumbnail: "Thumbnail",
+};
+
+/** What a gig package's price type is called, and what its rate is "per". */
+const PRICE_TYPE_LABELS: Record<string, string> = {
+  hourly: "Hourly",
+  daily: "Daily",
+  weekly: "Weekly",
+  monthly: "Monthly",
+  fixed: "Fixed price",
 };
 
 const DATE_KEYS = new Set(["available_from", "available_to"]);
@@ -139,6 +147,10 @@ interface SkuSnapshot {
   sku?: string | null;
   price: string;
   options?: string[];
+  /** Gig packages only. */
+  price_type?: string | null;
+  description?: string | null;
+  description_bn?: string | null;
   is_active: boolean;
   discounted_price?: string | null;
   discount_start_date?: string | null;
@@ -158,6 +170,15 @@ function discountText(sku: SkuSnapshot): string {
   const end = sku.discount_end_date ? formatDateTime(sku.discount_end_date) : "no end";
   const window = sku.discount_start_date || sku.discount_end_date ? ` (${start} → ${end})` : "";
   return `${formatAmount(sku.discounted_price)}${window}`;
+}
+
+/** A gig package's description (both languages) as one text. */
+function packageText(sku: SkuSnapshot): string {
+  return [sku.description, sku.description_bn].filter(Boolean).join(" / ");
+}
+
+function priceTypeText(sku: SkuSnapshot): string {
+  return sku.price_type ? (PRICE_TYPE_LABELS[sku.price_type] ?? sku.price_type) : "—";
 }
 
 /** One cell of the SKU table: just the value when it did not change, "before →
@@ -192,24 +213,29 @@ function SkusBlock({ previous, next }: { previous: unknown; next: unknown }) {
       was.price !== now.price ||
       discountText(was) !== discountText(now) ||
       was.is_active !== now.is_active ||
-      (was.sku ?? "") !== (now.sku ?? "");
+      (was.sku ?? "") !== (now.sku ?? "") ||
+      (was.price_type ?? "") !== (now.price_type ?? "") ||
+      packageText(was) !== packageText(now);
     return { id, was, now, base, changed };
   });
   const changedCount = rows.filter((row) => row.changed).length;
+  // A gig's SKUs are packages: one per price type, no options, with a text.
+  const isGig = [...before, ...after].some((sku) => sku.price_type);
 
   return (
     <div className={styles.diffGroup}>
       <span className={styles.diffLabel}>
-        {labelFor("skus")} — {changedCount} changed of {rows.length}
+        {isGig ? "Packages" : labelFor("skus")} — {changedCount} changed of {rows.length}
       </span>
       <div className={styles.tableWrap}>
         <table className={styles.table}>
           <thead>
             <tr>
-              <th>Option</th>
+              <th>{isGig ? "Price type" : "Option"}</th>
               <th>Code</th>
               <th>Price</th>
               <th>Discount</th>
+              {isGig && <th>Description</th>}
               <th>Active</th>
               <th></th>
             </tr>
@@ -217,14 +243,23 @@ function SkusBlock({ previous, next }: { previous: unknown; next: unknown }) {
           <tbody>
             {rows.map(({ id, was, now, base, changed }) => (
               <tr key={id} className={changed ? undefined : styles.skuRowInactive}>
-                <td className={styles.primaryText}>
-                  {(base.options ?? []).length > 0 ? (base.options ?? []).join(" · ") : "Default"}
-                </td>
+                {was && now && isGig ? (
+                  <Cell before={priceTypeText(was)} after={priceTypeText(now)} />
+                ) : (
+                  <td className={styles.primaryText}>
+                    {isGig
+                      ? priceTypeText(base)
+                      : (base.options ?? []).length > 0
+                        ? (base.options ?? []).join(" · ")
+                        : "Default"}
+                  </td>
+                )}
                 {was && now ? (
                   <>
                     <Cell before={was.sku || "—"} after={now.sku || "—"} />
                     <Cell before={formatAmount(was.price)} after={formatAmount(now.price)} />
                     <Cell before={discountText(was)} after={discountText(now)} />
+                    {isGig && <Cell before={packageText(was) || "—"} after={packageText(now) || "—"} />}
                     <Cell
                       before={was.is_active ? "Active" : "Inactive"}
                       after={now.is_active ? "Active" : "Inactive"}
@@ -235,6 +270,7 @@ function SkusBlock({ previous, next }: { previous: unknown; next: unknown }) {
                     <td>{base.sku || "—"}</td>
                     <td>{formatAmount(base.price)}</td>
                     <td>{discountText(base)}</td>
+                    {isGig && <td>{packageText(base) || "—"}</td>}
                     <td>{base.is_active ? "Active" : "Inactive"}</td>
                   </>
                 )}
@@ -318,6 +354,33 @@ function MediaBlock({ previous, next }: { previous: unknown; next: unknown }) {
   );
 }
 
+// ----------------------------------------------------------------- thumbnail
+
+/** The thumbnail before and after, as small pictures (the log keeps the URLs;
+ * a replaced picture's file is deleted, so an old one may no longer load). */
+function ThumbnailBlock({ previous, next }: { previous: unknown; next: unknown }) {
+  const picture = (value: unknown) => {
+    const url = typeof value === "string" ? value : isRecord(value) ? String(value.url ?? "") : "";
+    return url ? (
+      <Thumb media={{ id: 0, media_url: url, media_type: "image" }} />
+    ) : (
+      <span className={styles.secondaryText}>None</span>
+    );
+  };
+  return (
+    <div className={styles.diffGroup}>
+      <span className={styles.diffLabel}>{labelFor("thumbnail")}</span>
+      <div className={styles.diffLine}>
+        <span className={styles.diffBefore} style={{ textDecoration: "none" }}>
+          {picture(previous)}
+        </span>
+        <span className={styles.diffArrow}>→</span>
+        <span className={styles.diffAfter}>{picture(next)}</span>
+      </div>
+    </div>
+  );
+}
+
 /** What changed under one key of one log row. */
 function ChangeBlock({
   field,
@@ -331,6 +394,7 @@ function ChangeBlock({
   if (field === "price_tiers") return <TiersBlock previous={previous} next={next} />;
   if (field === "skus") return <SkusBlock previous={previous} next={next} />;
   if (field === "media") return <MediaBlock previous={previous} next={next} />;
+  if (field === "thumbnail") return <ThumbnailBlock previous={previous} next={next} />;
   return (
     <Diff
       label={labelFor(field)}

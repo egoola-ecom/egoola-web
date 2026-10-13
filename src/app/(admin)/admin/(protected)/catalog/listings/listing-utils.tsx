@@ -1,5 +1,4 @@
 import {
-  ListingCatalogType,
   ListingPostedByRole,
   ListingStatus,
   ListingType,
@@ -21,11 +20,6 @@ export const LISTING_TYPE_OPTIONS: { value: ListingType; label: string }[] = [
   { value: "retail", label: "Retail" },
   { value: "wholesale", label: "Wholesale" },
   { value: "brand", label: "Brand" },
-];
-
-export const CATALOG_TYPE_OPTIONS: { value: ListingCatalogType; label: string }[] = [
-  { value: "product", label: "Product" },
-  { value: "service", label: "Service" },
 ];
 
 export const POSTED_BY_ROLE_OPTIONS: { value: ListingPostedByRole; label: string }[] = [

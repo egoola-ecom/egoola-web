@@ -4,9 +4,12 @@ export const metadata = { title: "Update Listing" };
 
 export default async function ListingEditPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ thumbnailError?: string }>;
 }) {
   const { id } = await params;
-  return <ListingEditClient id={Number(id)} />;
+  const { thumbnailError } = await searchParams;
+  return <ListingEditClient id={Number(id)} initialThumbnailError={thumbnailError ?? null} />;
 }

@@ -187,7 +187,6 @@ export function SkuTable({ listing }: { listing: ListingCore }) {
 export function ListingProfileView({ listing }: { listing: ListingDetail }) {
   const names = useListingNames(listing);
   const location = useResolvedLocation(listing);
-  const isProduct = listing.catalog_type === "product";
 
   const ownerText =
     listing.seller != null
@@ -205,7 +204,6 @@ export function ListingProfileView({ listing }: { listing: ListingDetail }) {
       <div className={styles.detailCard}>
         <h2 className={styles.detailCardTitle}>Overview</h2>
         <div className={styles.formGrid}>
-          <ReadonlyField label="Catalog type" value={isProduct ? "Product" : "Service"} />
           <ReadonlyField label="Listing format" value={listingTypeLabel(listing.listing_type)} />
           <div className={styles.formGridFull}>
             <ReadonlyField label="Category" value={names.category ?? `#${listing.category}`} />
@@ -299,49 +297,19 @@ export function ListingProfileView({ listing }: { listing: ListingDetail }) {
       </div>
 
       <div className={styles.detailCard}>
-        <h2 className={styles.detailCardTitle}>{isProduct ? "Product details" : "Service details"}</h2>
+        <h2 className={styles.detailCardTitle}>Product details</h2>
         <div className={styles.formGrid}>
-          {isProduct ? (
-            <>
-              <ReadonlyField label="Minimum order quantity" value={orDash(listing.min_order_qty)} />
-              <ReadonlyField
-                label="Measurement unit"
-                value={listing.measurement == null ? "—" : (names.measurement ?? `#${listing.measurement}`)}
-              />
-              <div className={styles.formGridFull}>
-                <ReadonlyField label="Condition note" value={orDash(listing.condition_note)} />
-              </div>
-              <div className={styles.formGridFull}>
-                <ReadonlyField label="Condition note (Bangla)" value={orDash(listing.condition_note_bn)} />
-              </div>
-            </>
-          ) : (
-            <>
-              <ReadonlyField label="Price type" value={orDash(listing.price_type)} />
-              {listing.price_type === "hourly" && (
-                <ReadonlyField
-                  label="Hourly rate"
-                  value={listing.hourly_rate ? formatAmount(listing.hourly_rate, listing.currency) : "—"}
-                />
-              )}
-              <ReadonlyField label="Delivery days" value={orDash(listing.delivery_days)} />
-              <ReadonlyField label="Urgent" value={listing.urgent ? "Yes" : "No"} />
-              <ReadonlyField
-                label="Available from"
-                value={listing.available_from ? formatDateTime(listing.available_from) : "—"}
-              />
-              <ReadonlyField
-                label="Available to"
-                value={listing.available_to ? formatDateTime(listing.available_to) : "—"}
-              />
-              <div className={styles.formGridFull}>
-                <ReadonlyField label="Package includes" value={orDash(listing.package_includes)} />
-              </div>
-              <div className={styles.formGridFull}>
-                <ReadonlyField label="Package includes (Bangla)" value={orDash(listing.package_includes_bn)} />
-              </div>
-            </>
-          )}
+          <ReadonlyField label="Minimum order quantity" value={orDash(listing.min_order_qty)} />
+          <ReadonlyField
+            label="Measurement unit"
+            value={listing.measurement == null ? "—" : (names.measurement ?? `#${listing.measurement}`)}
+          />
+          <div className={styles.formGridFull}>
+            <ReadonlyField label="Condition note" value={orDash(listing.condition_note)} />
+          </div>
+          <div className={styles.formGridFull}>
+            <ReadonlyField label="Condition note (Bangla)" value={orDash(listing.condition_note_bn)} />
+          </div>
           {hasAttributes && (
             <>
               <p className={styles.sectionDivider}>Attributes</p>
