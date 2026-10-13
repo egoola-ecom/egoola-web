@@ -16,6 +16,7 @@ import styles from "../management.module.css";
 
 const STATUS_OPTIONS: { value: SellerStatus; label: string }[] = [
   { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive (paused / awaiting activation)" },
   { value: "suspended", label: "Suspended" },
 ];
 
@@ -67,6 +68,7 @@ export function SellerForm({
     thana: initial?.thana ?? null,
   });
 
+  const [phoneEdited, setPhoneEdited] = useState(false);
   const [removedMediaIds, setRemovedMediaIds] = useState<number[]>([]);
   const [newDocuments, setNewDocuments] = useState<NewDocumentRow<SellerMediaFor>[]>([]);
 
@@ -161,15 +163,21 @@ export function SellerForm({
 
         <div className={styles.field}>
           <label className={styles.label} htmlFor="phone">
-            Phone
+            Phone (the seller&apos;s login)
           </label>
           <input
             id="phone"
             name="phone"
             className={styles.input}
             defaultValue={initial?.phone}
+            onChange={(event) => setPhoneEdited(event.target.value.trim() !== (initial?.phone ?? ""))}
             required
           />
+          <p className={phoneEdited && mode === "edit" ? styles.fieldError : styles.secondaryText}>
+            This is the seller&apos;s login number.
+            {mode === "edit" &&
+              " If you change it, the old number stops working at once and the seller must log in with the new one."}
+          </p>
           {fieldErrors.phone?.[0] && <p className={styles.fieldError}>{fieldErrors.phone[0]}</p>}
         </div>
 
@@ -213,14 +221,10 @@ export function SellerForm({
 
         {initial && (
           <>
-            <ReadonlyField label="Verification status" value={initial.verification_status} />
             <ReadonlyField label="Email" value={formatVerified(initial.email_verified_at)} />
             <ReadonlyField label="Phone" value={formatVerified(initial.phone_verified_at)} />
             <ReadonlyField label="Wallet balance" value={formatMoney(initial.wallet_balance)} />
             <ReadonlyField label="Bonus balance" value={formatMoney(initial.bonus_balance)} />
-            {initial.verification_note && (
-              <ReadonlyField label="Verification note" value={initial.verification_note} />
-            )}
           </>
         )}
 

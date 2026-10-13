@@ -4,48 +4,26 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/modal";
 import {
-  SellerDetail,
   SellerInput,
   SellerListItem,
-  SellerStatus,
-  SellerVerificationStatus,
   createSeller,
   deleteSeller,
-  getSeller,
   listSellers,
-  updateSeller,
 } from "@/lib/accounts-api";
 import { AuthError, clearSession } from "@/lib/auth";
 import { resolveMediaUrl } from "@/lib/env";
+import { notifySellerRequestsChanged, useSellerRequestCount } from "@/lib/seller-request-count";
 import { FieldErrors, parseFieldErrors, useManagedList } from "@/lib/use-managed-list";
+import {
+  STATUS_LABELS,
+  STATUS_SHORT_LABELS,
+  initials,
+  statusBadgeClass,
+  verificationBadgeClass,
+} from "./seller-badges";
+import { SellerFilterBar, useSellerFilters } from "./seller-filters";
 import { SellerForm } from "./seller-form";
 import styles from "../management.module.css";
-
-function initials(name: string): string {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-}
-
-function statusBadgeClass(status: SellerStatus): string {
-  return status === "active" ? styles.badgeGreen : styles.badgeRed;
-}
-
-function verificationBadgeClass(status: SellerVerificationStatus): string {
-  switch (status) {
-    case "verified":
-      return styles.badgeGreen;
-    case "pending":
-      return styles.badgeAmber;
-    case "rejected":
-      return styles.badgeRed;
-    default:
-      return styles.badgeGray;
-  }
-}
 
 function formatMoney(value: string): string {
   const amount = Number(value);
@@ -54,19 +32,13 @@ function formatMoney(value: string): string {
 
 export function SellersClient() {
   const router = useRouter();
-  const [search, setSearch] = useState("");
-  const [verificationFilter, setVerificationFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const f = useSellerFilters();
+  const requestCount = useSellerRequestCount(true);
 
   const { items, count, loading, error, offset, setOffset, pageSize, refetch } =
-    useManagedList<SellerListItem>(listSellers, search, {
-      verification_status: verificationFilter,
-      status: statusFilter,
-    });
+    useManagedList<SellerListItem>(listSellers, f.search, f.filters);
 
-  const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
-  const [editingItem, setEditingItem] = useState<SellerDetail | null>(null);
-  const [detailLoadingId, setDetailLoadingId] = useState<number | null>(null);
+  const [modalMode, setModalMode] = useState<"create" | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -80,28 +52,14 @@ export function SellersClient() {
     return false;
   }
 
-  async function handleEditClick(id: number) {
-    setDetailLoadingId(id);
-    try {
-      const detail = await getSeller(id);
-      setEditingItem(detail);
-      setFieldErrors({});
-      setFormError(null);
-      setModalMode("edit");
-    } catch (err) {
-      if (!handleAuthError(err)) {
-        window.alert("Couldn't load this seller's details. Please try again.");
-      }
-    } finally {
-      setDetailLoadingId(null);
-    }
-  }
-
   async function handleDeleteClick(item: SellerListItem) {
-    if (!window.confirm(`Delete seller "${item.name}"? This cannot be undone.`)) return;
+    if (!window.confirm(
+        `Delete seller "${item.name}"? This permanently deletes the seller and their uploaded documents.`,
+      )) return;
     try {
       await deleteSeller(item.id);
       refetch();
+      notifySellerRequestsChanged();
     } catch (err) {
       if (!handleAuthError(err)) {
         window.alert("Couldn't delete this seller. Please try again.");
@@ -114,13 +72,10 @@ export function SellersClient() {
     setFieldErrors({});
     setFormError(null);
     try {
-      if (modalMode === "create") {
-        await createSeller(input);
-      } else if (editingItem) {
-        await updateSeller(editingItem.id, input);
-      }
+      await createSeller(input);
       setModalMode(null);
       refetch();
+      notifySellerRequestsChanged();
     } catch (err) {
       if (!handleAuthError(err)) {
         const { fieldErrors: fe, message } = parseFieldErrors(err);
@@ -146,49 +101,34 @@ export function SellersClient() {
         </div>
       </div>
 
-      <div className={styles.toolbar}>
-        <div className={styles.toolbarLeft}>
-          <input
-            className={styles.searchInput}
-            type="search"
-            placeholder="Search by name, email, or phone"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-          <select
-            className={styles.filterSelect}
-            value={verificationFilter}
-            onChange={(event) => setVerificationFilter(event.target.value)}
-          >
-            <option value="">All verification statuses</option>
-            <option value="unverified">Unverified</option>
-            <option value="pending">Pending</option>
-            <option value="verified">Verified</option>
-            <option value="rejected">Rejected</option>
-          </select>
-          <select
-            className={styles.filterSelect}
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-          >
-            <option value="">All statuses</option>
-            <option value="active">Active</option>
-            <option value="suspended">Suspended</option>
-          </select>
-        </div>
-        <button
-          type="button"
-          className={styles.addButton}
-          onClick={() => {
-            setEditingItem(null);
-            setFieldErrors({});
-            setFormError(null);
-            setModalMode("create");
-          }}
-        >
-          + Add Seller
-        </button>
-      </div>
+      <SellerFilterBar
+        f={f}
+        idPrefix="seller-filter"
+        showCreatorType
+        dateKind="signup"
+        trailing={
+          <div className={styles.toolbarLeft}>
+            <button
+              type="button"
+              className={styles.actionButton}
+              onClick={() => router.push("/admin/sellers/requests")}
+            >
+              Seller Requests{requestCount != null ? ` (${requestCount})` : ""}
+            </button>
+            <button
+              type="button"
+              className={styles.addButton}
+              onClick={() => {
+                setFieldErrors({});
+                setFormError(null);
+                setModalMode("create");
+              }}
+            >
+              + Add Seller
+            </button>
+          </div>
+        }
+      />
 
       {error && <p className={styles.errorBanner}>{error}</p>}
 
@@ -201,19 +141,20 @@ export function SellersClient() {
               <th>Verification</th>
               <th>Status</th>
               <th>Wallet</th>
+              <th>Signed up</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className={styles.stateRow}>
+                <td colSpan={7} className={styles.stateRow}>
                   Loading…
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={6} className={styles.stateRow}>
+                <td colSpan={7} className={styles.stateRow}>
                   No sellers found.
                 </td>
               </tr>
@@ -231,7 +172,14 @@ export function SellersClient() {
                         )}
                       </span>
                       <div>
-                        <div className={styles.primaryText}>{item.name}</div>
+                        <div className={styles.primaryText}>
+                          {item.name}
+                          {item.is_seller_request && (
+                            <span className={`${styles.badge} ${styles.badgeAmber}`} style={{ marginLeft: "0.5rem" }}>
+                              Request
+                            </span>
+                          )}
+                        </div>
                         <div className={styles.secondaryText}>{item.email}</div>
                       </div>
                     </div>
@@ -245,20 +193,25 @@ export function SellersClient() {
                     </span>
                   </td>
                   <td>
-                    <span className={`${styles.badge} ${statusBadgeClass(item.status)}`}>
-                      {item.status}
+                    <span
+                      className={`${styles.badge} ${statusBadgeClass(item.status)}`}
+                      title={STATUS_LABELS[item.status]}
+                    >
+                      {STATUS_SHORT_LABELS[item.status]}
                     </span>
                   </td>
                   <td>{formatMoney(item.wallet_balance)}</td>
+                  <td className={styles.secondaryText}>
+                    {new Date(item.created_at).toLocaleDateString()}
+                  </td>
                   <td>
                     <div className={styles.rowActions}>
                       <button
                         type="button"
                         className={styles.actionButton}
-                        onClick={() => handleEditClick(item.id)}
-                        disabled={detailLoadingId === item.id}
+                        onClick={() => router.push(`/admin/sellers/${item.id}`)}
                       >
-                        {detailLoadingId === item.id ? "Loading…" : "Edit"}
+                        View Details
                       </button>
                       <button
                         type="button"
@@ -301,13 +254,9 @@ export function SellersClient() {
       </div>
 
       {modalMode && (
-        <Modal
-          title={modalMode === "create" ? "Add Seller" : "Edit Seller"}
-          onClose={() => setModalMode(null)}
-        >
+        <Modal title="Add Seller" onClose={() => setModalMode(null)}>
           <SellerForm
-            mode={modalMode}
-            initial={editingItem}
+            mode="create"
             fieldErrors={fieldErrors}
             formError={formError}
             submitting={submitting}
