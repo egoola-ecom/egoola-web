@@ -188,7 +188,12 @@ export async function authFetch<T>(
   let response = await doFetch(session.access);
 
   if (response.status === 401) {
-    const newAccess = await refreshAccessToken(actorType);
+    // Another request may already have refreshed while this one was in flight:
+    // then the stored access token is newer than the one sent, so just retry
+    // with it (a second refresh would only rotate the refresh token again).
+    const latest = getSession(actorType)?.access;
+    const newAccess =
+      latest && latest !== session.access ? latest : await refreshAccessToken(actorType);
     response = await doFetch(newAccess);
     if (response.status === 401) {
       clearSession(actorType);
