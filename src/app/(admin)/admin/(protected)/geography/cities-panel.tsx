@@ -152,7 +152,7 @@ export function CitiesPanel() {
   }
 
   async function handleDeleteClick(item: CityItem) {
-    if (!window.confirm(`Delete city "${item.name}"? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete city "${item.name}"? Every thana under it is deleted too. This cannot be undone.`)) return;
     try {
       await deleteCity(item.id);
       refetch();

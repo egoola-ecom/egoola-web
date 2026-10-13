@@ -30,6 +30,21 @@ export function listMeasurements(params: URLSearchParams) {
   );
 }
 
+/** Every measurement, following `next` pages — for the listing form's unit
+ * dropdown, where one 20-row page would silently drop units. */
+export async function listAllMeasurements(): Promise<MeasurementItem[]> {
+  const all: MeasurementItem[] = [];
+  const pageSize = 100;
+  for (let offset = 0; ; offset += pageSize) {
+    const page = await listMeasurements(
+      new URLSearchParams({ limit: String(pageSize), offset: String(offset) }),
+    );
+    all.push(...page.results);
+    if (!page.next) break;
+  }
+  return all;
+}
+
 export function createMeasurement(input: MeasurementInput) {
   return authFetch<MeasurementItem>("admin", MEASUREMENTS_PATH, {
     method: "POST",

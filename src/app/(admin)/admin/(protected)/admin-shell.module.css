@@ -81,6 +81,65 @@
   background: var(--brand-green);
 }
 
+/* A menu group (Sellers) that opens a short list of pages. */
+.navGroup {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.navGroupActive {
+  color: #fff;
+  font-weight: 600;
+}
+
+.navChevron {
+  font-size: 0.7rem;
+  transition: transform 0.15s ease;
+}
+
+.navChevronOpen {
+  transform: rotate(90deg);
+}
+
+.navSub {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin: 0.1rem 0 0.35rem 0.75rem;
+  padding-left: 0.5rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.navSubLink {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.86rem;
+}
+
+/* Count next to "Seller Requests" (requests waiting for an admin). */
+.navCount {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.4;
+  border-radius: 999px;
+  background: var(--brand-green);
+  color: #fff;
+}
+
+.navLinkActive .navCount {
+  background: #fff;
+  color: var(--brand-green-dark);
+}
+
 .main {
   flex: 1;
   min-width: 0;

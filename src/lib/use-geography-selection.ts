@@ -1,13 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  GeographyOption,
-  listCityOptions,
-  listCountryOptions,
-  listStateOptions,
-  listThanaOptions,
-} from "./geography-api";
+import { GeographyLoaders, GeographyOption, adminGeographyLoaders } from "./geography-api";
 
 /**
  * Cascading Country -> State -> City -> Thana selection. Picking a level
@@ -19,7 +13,7 @@ export function useGeographySelection(initial: {
   state?: number | null;
   city?: number | null;
   thana?: number | null;
-}) {
+}, loaders: GeographyLoaders = adminGeographyLoaders) {
   const [countryId, setCountryId] = useState<number | null>(initial.country ?? null);
   const [stateId, setStateId] = useState<number | null>(initial.state ?? null);
   const [cityId, setCityId] = useState<number | null>(initial.city ?? null);
@@ -29,12 +23,22 @@ export function useGeographySelection(initial: {
   const [states, setStates] = useState<GeographyOption[]>([]);
   const [cities, setCities] = useState<GeographyOption[]>([]);
   const [thanas, setThanas] = useState<GeographyOption[]>([]);
+  // True when the first list (countries) could not be loaded at all, so a
+  // screen can say so instead of showing an empty dropdown.
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
-    listCountryOptions()
-      .then((res) => setCountries(res.results))
-      .catch(() => setCountries([]));
-  }, []);
+    loaders
+      .countries()
+      .then((res) => {
+        setCountries(res.results);
+        setLoadFailed(false);
+      })
+      .catch(() => {
+        setCountries([]);
+        setLoadFailed(true);
+      });
+  }, [loaders]);
 
   useEffect(() => {
     if (!countryId) {
@@ -43,10 +47,11 @@ export function useGeographySelection(initial: {
       setStates([]);
       return;
     }
-    listStateOptions(countryId)
+    loaders
+      .states(countryId)
       .then((res) => setStates(res.results))
       .catch(() => setStates([]));
-  }, [countryId]);
+  }, [countryId, loaders]);
 
   useEffect(() => {
     if (!stateId) {
@@ -54,10 +59,11 @@ export function useGeographySelection(initial: {
       setCities([]);
       return;
     }
-    listCityOptions(stateId)
+    loaders
+      .cities(stateId)
       .then((res) => setCities(res.results))
       .catch(() => setCities([]));
-  }, [stateId]);
+  }, [stateId, loaders]);
 
   useEffect(() => {
     if (!cityId) {
@@ -65,10 +71,11 @@ export function useGeographySelection(initial: {
       setThanas([]);
       return;
     }
-    listThanaOptions(cityId)
+    loaders
+      .thanas(cityId)
       .then((res) => setThanas(res.results))
       .catch(() => setThanas([]));
-  }, [cityId]);
+  }, [cityId, loaders]);
 
   function selectCountry(id: number | null) {
     setCountryId(id);
@@ -97,6 +104,7 @@ export function useGeographySelection(initial: {
     states,
     cities,
     thanas,
+    loadFailed,
     selectCountry,
     selectState,
     selectCity,

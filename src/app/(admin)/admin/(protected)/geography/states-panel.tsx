@@ -126,7 +126,7 @@ export function StatesPanel() {
   }
 
   async function handleDeleteClick(item: StateItem) {
-    if (!window.confirm(`Delete state "${item.name}"? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete state "${item.name}"? Every city and thana under it is deleted too. This cannot be undone.`)) return;
     try {
       await deleteState(item.id);
       refetch();

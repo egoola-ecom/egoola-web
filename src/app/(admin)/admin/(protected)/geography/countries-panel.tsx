@@ -107,7 +107,7 @@ export function CountriesPanel() {
   }
 
   async function handleDeleteClick(item: CountryItem) {
-    if (!window.confirm(`Delete country "${item.name}"? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete country "${item.name}"? Every state, city and thana under it is deleted too. This cannot be undone.`)) return;
     try {
       await deleteCountry(item.id);
       refetch();

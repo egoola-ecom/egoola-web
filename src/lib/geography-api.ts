@@ -1,3 +1,4 @@
+import { apiFetch } from "./api";
 import { authFetch } from "./auth";
 import { PaginatedResponse } from "./accounts-api";
 
@@ -19,6 +20,14 @@ function toOptionParams(filters: Record<string, number | undefined>): URLSearchP
     if (value != null) params.set(key, String(value));
   }
   return params;
+}
+
+/** Where the cascading location dropdowns get their options from. */
+export interface GeographyLoaders {
+  countries: () => Promise<PaginatedResponse<GeographyOption>>;
+  states: (countryId: number) => Promise<PaginatedResponse<GeographyOption>>;
+  cities: (stateId: number) => Promise<PaginatedResponse<GeographyOption>>;
+  thanas: (cityId: number) => Promise<PaginatedResponse<GeographyOption>>;
 }
 
 export function listCountryOptions() {
@@ -48,6 +57,35 @@ export function listThanaOptions(cityId: number) {
     `/geography/thanas/?${toOptionParams({ city: cityId })}`,
   );
 }
+
+export const adminGeographyLoaders: GeographyLoaders = {
+  countries: listCountryOptions,
+  states: listStateOptions,
+  cities: listCityOptions,
+  thanas: listThanaOptions,
+};
+
+/** Dropdown lists for a visitor who is not signed in (the public seller
+ * sign-up form): `/public/geography/…`, no token. Never the admin
+ * `/geography/` API. Each list is complete (limit defaults to 500). */
+function publicOptions(
+  resource: "countries" | "states" | "cities" | "thanas",
+  filter?: Record<string, number>,
+) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(filter ?? {})) params.set(key, String(value));
+  const query = params.toString();
+  return apiFetch<PaginatedResponse<GeographyOption>>(
+    `/public/geography/${resource}/${query ? `?${query}` : ""}`,
+  );
+}
+
+export const publicGeographyLoaders: GeographyLoaders = {
+  countries: () => publicOptions("countries"),
+  states: (countryId) => publicOptions("states", { country: countryId }),
+  cities: (stateId) => publicOptions("cities", { state: stateId }),
+  thanas: (cityId) => publicOptions("thanas", { city: cityId }),
+};
 
 // ---------------------------------------------------------------------------
 // Full management CRUD — Geography admin screen (Country/State/City/Thana).

@@ -42,3 +42,26 @@ export async function apiFetch<T>(
 export function apiUrl(path: string): string {
   return `${API_BASE_URL}${path}`;
 }
+
+/** The server's `{"detail": "..."}` message from a failed call, or null.
+ * 401/403/404/409 answers carry their explanation here. */
+export function apiErrorDetail(err: unknown): string | null {
+  if (err instanceof ApiError && err.body && typeof err.body === "object") {
+    const detail = (err.body as Record<string, unknown>).detail;
+    if (typeof detail === "string") return detail;
+  }
+  return null;
+}
+
+/** True for a 403 (signed in, but this role may not do it) — shown as a
+ * "not allowed" state, never as a redirect to the login page. */
+export function isForbidden(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 403;
+}
+
+/** True for a 409 — the server refused a delete because something still uses
+ * the record (category, brand, attribute, value). The caller offers
+ * "Deactivate" instead. */
+export function isConflict(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 409;
+}

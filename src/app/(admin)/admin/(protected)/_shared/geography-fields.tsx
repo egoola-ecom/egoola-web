@@ -14,9 +14,12 @@ const DEPTH_ORDER: GeographyDepth[] = ["country", "state", "city", "thana"];
 export function GeographyFields({
   geo,
   upTo = "thana",
+  idPrefix = "geo",
 }: {
   geo: ReturnType<typeof useGeographySelection>;
   upTo?: GeographyDepth;
+  /** Prefix for the select ids — set when two instances share a page. */
+  idPrefix?: string;
 }) {
   const show = (level: GeographyDepth) => DEPTH_ORDER.indexOf(level) <= DEPTH_ORDER.indexOf(upTo);
   const columnCount = DEPTH_ORDER.indexOf(upTo) + 1;
@@ -28,11 +31,11 @@ export function GeographyFields({
     >
       {show("country") && (
         <div className={styles.field}>
-          <label className={styles.label} htmlFor="geo-country">
+          <label className={styles.label} htmlFor={`${idPrefix}-country`}>
             Country
           </label>
           <select
-            id="geo-country"
+            id={`${idPrefix}-country`}
             className={styles.select}
             value={geo.countryId ?? ""}
             onChange={(event) =>
@@ -52,11 +55,11 @@ export function GeographyFields({
       )}
       {show("state") && (
         <div className={styles.field}>
-          <label className={styles.label} htmlFor="geo-state">
+          <label className={styles.label} htmlFor={`${idPrefix}-state`}>
             State
           </label>
           <select
-            id="geo-state"
+            id={`${idPrefix}-state`}
             className={styles.select}
             value={geo.stateId ?? ""}
             disabled={!geo.countryId}
@@ -75,11 +78,11 @@ export function GeographyFields({
       )}
       {show("city") && (
         <div className={styles.field}>
-          <label className={styles.label} htmlFor="geo-city">
+          <label className={styles.label} htmlFor={`${idPrefix}-city`}>
             City
           </label>
           <select
-            id="geo-city"
+            id={`${idPrefix}-city`}
             className={styles.select}
             value={geo.cityId ?? ""}
             disabled={!geo.stateId}
@@ -98,11 +101,11 @@ export function GeographyFields({
       )}
       {show("thana") && (
         <div className={styles.field}>
-          <label className={styles.label} htmlFor="geo-thana">
+          <label className={styles.label} htmlFor={`${idPrefix}-thana`}>
             Thana
           </label>
           <select
-            id="geo-thana"
+            id={`${idPrefix}-thana`}
             className={styles.select}
             value={geo.thanaId ?? ""}
             disabled={!geo.cityId}
