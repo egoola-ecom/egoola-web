@@ -163,11 +163,17 @@ export function BuyerForm({
             type="password"
             className={styles.input}
             required={mode === "create"}
+            minLength={8}
+            // At least one non-digit: the server refuses all-digit passwords.
+            pattern=".*\D.*"
+            title="At least 8 characters, and not only digits."
+            autoComplete="new-password"
             placeholder={mode === "edit" ? "••••••••" : undefined}
           />
-          {mode === "edit" && (
-            <span className={styles.fieldHint}>Leave blank to keep the current password.</span>
-          )}
+          <span className={styles.fieldHint}>
+            {mode === "edit" ? "Leave blank to keep the current password. " : ""}
+            At least 8 characters, not only digits, not a very common password.
+          </span>
           {fieldErrors.password?.[0] && (
             <p className={styles.fieldError}>{fieldErrors.password[0]}</p>
           )}

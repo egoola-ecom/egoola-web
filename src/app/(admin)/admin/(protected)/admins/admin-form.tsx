@@ -23,8 +23,6 @@ import styles from "../management.module.css";
 const TYPE_OPTIONS: { value: AdminType; label: string }[] = [
   { value: "super_admin", label: "Super Admin" },
   { value: "admin", label: "Admin" },
-  { value: "moderator", label: "Moderator" },
-  { value: "support", label: "Support" },
 ];
 
 const STATUS_OPTIONS: { value: AdminStatus; label: string }[] = [
@@ -42,6 +40,7 @@ const MEDIA_FOR_OPTIONS: { value: AdminMediaFor; label: string }[] = [
 export function AdminForm({
   mode,
   initial,
+  isSelf = false,
   fieldErrors,
   formError,
   submitting,
@@ -50,6 +49,9 @@ export function AdminForm({
 }: {
   mode: "create" | "edit";
   initial?: AdminDetail | null;
+  /** Editing your own account: the server refuses a change of your own role
+   * or status, so those two fields are locked. */
+  isSelf?: boolean;
   fieldErrors: FieldErrors;
   formError: string | null;
   submitting: boolean;
@@ -83,8 +85,8 @@ export function AdminForm({
       name: String(data.get("name") ?? ""),
       email: String(data.get("email") ?? ""),
       mobile: String(data.get("mobile") ?? ""),
-      type: (data.get("type") as AdminType) ?? "admin",
-      status: (data.get("status") as AdminStatus) ?? "active",
+      type: (data.get("type") as AdminType | null) ?? initial?.type ?? "admin",
+      status: (data.get("status") as AdminStatus | null) ?? initial?.status ?? "active",
       skills: parseTagList(skillsText),
       interests: parseTagList(interestsText),
       experiences,
@@ -173,11 +175,17 @@ export function AdminForm({
             type="password"
             className={styles.input}
             required={mode === "create"}
+            minLength={8}
+            // At least one non-digit: the server refuses all-digit passwords.
+            pattern=".*\D.*"
+            title="At least 8 characters, and not only digits."
+            autoComplete="new-password"
             placeholder={mode === "edit" ? "••••••••" : undefined}
           />
-          {mode === "edit" && (
-            <span className={styles.fieldHint}>Leave blank to keep the current password.</span>
-          )}
+          <span className={styles.fieldHint}>
+            {mode === "edit" ? "Leave blank to keep the current password. " : ""}
+            At least 8 characters, not only digits, not a very common password.
+          </span>
           {fieldErrors.password?.[0] && (
             <p className={styles.fieldError}>{fieldErrors.password[0]}</p>
           )}
@@ -192,6 +200,7 @@ export function AdminForm({
             name="type"
             className={styles.select}
             defaultValue={initial?.type ?? "admin"}
+            disabled={isSelf}
           >
             {TYPE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -199,6 +208,9 @@ export function AdminForm({
               </option>
             ))}
           </select>
+          {isSelf && (
+            <span className={styles.fieldHint}>You can&apos;t change your own role.</span>
+          )}
           {fieldErrors.type?.[0] && <p className={styles.fieldError}>{fieldErrors.type[0]}</p>}
         </div>
 
@@ -211,6 +223,7 @@ export function AdminForm({
             name="status"
             className={styles.select}
             defaultValue={initial?.status ?? "active"}
+            disabled={isSelf}
           >
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -218,6 +231,12 @@ export function AdminForm({
               </option>
             ))}
           </select>
+          {isSelf && (
+            <span className={styles.fieldHint}>You can&apos;t change your own status.</span>
+          )}
+          {fieldErrors.status?.[0] && (
+            <p className={styles.fieldError}>{fieldErrors.status[0]}</p>
+          )}
         </div>
 
         {initial && (

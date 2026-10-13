@@ -4,54 +4,74 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/modal";
 import {
-  BuyerDetail,
   BuyerInput,
   BuyerListItem,
   BuyerStatus,
   createBuyer,
   deleteBuyer,
-  getBuyer,
   listBuyers,
-  updateBuyer,
 } from "@/lib/accounts-api";
+import { ApiError } from "@/lib/api";
 import { AuthError, clearSession } from "@/lib/auth";
 import { resolveMediaUrl } from "@/lib/env";
+import { useGeographySelection } from "@/lib/use-geography-selection";
 import { FieldErrors, parseFieldErrors, useManagedList } from "@/lib/use-managed-list";
+import { GeographyFields } from "../_shared/geography-fields";
+import { initials } from "../_shared/profile-sections";
+import { formatMoney } from "../_shared/readonly-field";
 import { BuyerForm } from "./buyer-form";
 import styles from "../management.module.css";
 
-function initials(name: string): string {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-}
-
 function statusBadgeClass(status: BuyerStatus): string {
   return status === "active" ? styles.badgeGreen : styles.badgeRed;
-}
-
-function formatMoney(value: string): string {
-  const amount = Number(value);
-  return Number.isFinite(amount) ? `৳${amount.toLocaleString()}` : value;
 }
 
 export function BuyersClient() {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [emailVerified, setEmailVerified] = useState("");
+  const [phoneVerified, setPhoneVerified] = useState("");
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
+  const geo = useGeographySelection({});
 
   const { items, count, loading, error, offset, setOffset, pageSize, refetch } =
-    useManagedList<BuyerListItem>(listBuyers, search, { status: statusFilter });
+    useManagedList<BuyerListItem>(listBuyers, search, {
+      status: statusFilter,
+      email_verified: emailVerified,
+      phone_verified: phoneVerified,
+      created_from: createdFrom,
+      created_to: createdTo,
+      country: geo.countryId != null ? String(geo.countryId) : undefined,
+      state: geo.stateId != null ? String(geo.stateId) : undefined,
+      city: geo.cityId != null ? String(geo.cityId) : undefined,
+      thana: geo.thanaId != null ? String(geo.thanaId) : undefined,
+    });
 
-  const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
-  const [editingItem, setEditingItem] = useState<BuyerDetail | null>(null);
-  const [detailLoadingId, setDetailLoadingId] = useState<number | null>(null);
+  const filtersActive = Boolean(
+    statusFilter ||
+      emailVerified ||
+      phoneVerified ||
+      createdFrom ||
+      createdTo ||
+      geo.countryId != null,
+  );
+
+  function clearFilters() {
+    setStatusFilter("");
+    setEmailVerified("");
+    setPhoneVerified("");
+    setCreatedFrom("");
+    setCreatedTo("");
+    geo.selectCountry(null);
+  }
+
+  const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   function handleAuthError(err: unknown): boolean {
     if (err instanceof AuthError) {
@@ -62,32 +82,21 @@ export function BuyersClient() {
     return false;
   }
 
-  async function handleEditClick(id: number) {
-    setDetailLoadingId(id);
-    try {
-      const detail = await getBuyer(id);
-      setEditingItem(detail);
-      setFieldErrors({});
-      setFormError(null);
-      setModalMode("edit");
-    } catch (err) {
-      if (!handleAuthError(err)) {
-        window.alert("Couldn't load this buyer's details. Please try again.");
-      }
-    } finally {
-      setDetailLoadingId(null);
-    }
-  }
-
   async function handleDeleteClick(item: BuyerListItem) {
     if (!window.confirm(`Delete buyer "${item.name}"? This cannot be undone.`)) return;
+    setActionError(null);
     try {
       await deleteBuyer(item.id);
       refetch();
     } catch (err) {
-      if (!handleAuthError(err)) {
-        window.alert("Couldn't delete this buyer. Please try again.");
-      }
+      if (handleAuthError(err)) return;
+      const detail =
+        err instanceof ApiError && err.body && typeof err.body === "object"
+          ? (err.body as Record<string, unknown>).detail
+          : null;
+      setActionError(
+        typeof detail === "string" ? detail : "Couldn't delete this buyer. Please try again.",
+      );
     }
   }
 
@@ -96,12 +105,8 @@ export function BuyersClient() {
     setFieldErrors({});
     setFormError(null);
     try {
-      if (modalMode === "create") {
-        await createBuyer(input);
-      } else if (editingItem) {
-        await updateBuyer(editingItem.id, input);
-      }
-      setModalMode(null);
+      await createBuyer(input);
+      setModalOpen(false);
       refetch();
     } catch (err) {
       if (!handleAuthError(err)) {
@@ -137,6 +142,7 @@ export function BuyersClient() {
           />
           <select
             className={styles.filterSelect}
+            aria-label="Filter by status"
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
           >
@@ -144,22 +150,77 @@ export function BuyersClient() {
             <option value="active">Active</option>
             <option value="suspended">Suspended</option>
           </select>
+          <select
+            className={styles.filterSelect}
+            aria-label="Filter by email verification"
+            value={emailVerified}
+            onChange={(event) => setEmailVerified(event.target.value)}
+          >
+            <option value="">Email: any</option>
+            <option value="true">Email verified</option>
+            <option value="false">Email not verified</option>
+          </select>
+          <select
+            className={styles.filterSelect}
+            aria-label="Filter by phone verification"
+            value={phoneVerified}
+            onChange={(event) => setPhoneVerified(event.target.value)}
+          >
+            <option value="">Phone: any</option>
+            <option value="true">Phone verified</option>
+            <option value="false">Phone not verified</option>
+          </select>
         </div>
         <button
           type="button"
           className={styles.addButton}
           onClick={() => {
-            setEditingItem(null);
             setFieldErrors({});
             setFormError(null);
-            setModalMode("create");
+            setModalOpen(true);
           }}
         >
           + Add Buyer
         </button>
       </div>
 
+      <div className={styles.toolbar}>
+        <div className={styles.toolbarLeft}>
+          <label className={styles.secondaryText} htmlFor="buyer-created-from">
+            Signed up from
+          </label>
+          <input
+            id="buyer-created-from"
+            type="date"
+            className={styles.filterSelect}
+            value={createdFrom}
+            max={createdTo || undefined}
+            onChange={(event) => setCreatedFrom(event.target.value)}
+          />
+          <label className={styles.secondaryText} htmlFor="buyer-created-to">
+            to
+          </label>
+          <input
+            id="buyer-created-to"
+            type="date"
+            className={styles.filterSelect}
+            value={createdTo}
+            min={createdFrom || undefined}
+            onChange={(event) => setCreatedTo(event.target.value)}
+          />
+          {filtersActive && (
+            <button type="button" className={styles.actionButton} onClick={clearFilters}>
+              Clear filters
+            </button>
+          )}
+        </div>
+      </div>
+      <div style={{ marginBottom: "1rem" }}>
+        <GeographyFields geo={geo} idPrefix="buyer-filter-geo" />
+      </div>
+
       {error && <p className={styles.errorBanner}>{error}</p>}
+      {actionError && <p className={styles.errorBanner}>{actionError}</p>}
 
       <div className={styles.tableWrap}>
         <table className={styles.table}>
@@ -216,10 +277,9 @@ export function BuyersClient() {
                       <button
                         type="button"
                         className={styles.actionButton}
-                        onClick={() => handleEditClick(item.id)}
-                        disabled={detailLoadingId === item.id}
+                        onClick={() => router.push(`/admin/buyers/${item.id}`)}
                       >
-                        {detailLoadingId === item.id ? "Loading…" : "Edit"}
+                        View Details
                       </button>
                       <button
                         type="button"
@@ -261,18 +321,14 @@ export function BuyersClient() {
         </div>
       </div>
 
-      {modalMode && (
-        <Modal
-          title={modalMode === "create" ? "Add Buyer" : "Edit Buyer"}
-          onClose={() => setModalMode(null)}
-        >
+      {modalOpen && (
+        <Modal title="Add Buyer" onClose={() => setModalOpen(false)}>
           <BuyerForm
-            mode={modalMode}
-            initial={editingItem}
+            mode="create"
             fieldErrors={fieldErrors}
             formError={formError}
             submitting={submitting}
-            onCancel={() => setModalMode(null)}
+            onCancel={() => setModalOpen(false)}
             onSubmit={handleFormSubmit}
           />
         </Modal>

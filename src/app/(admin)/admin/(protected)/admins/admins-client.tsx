@@ -4,30 +4,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/modal";
 import {
-  AdminDetail,
   AdminInput,
   AdminListItem,
   AdminStatus,
   createAdmin,
   deleteAdmin,
-  getAdmin,
   listAdmins,
-  updateAdmin,
 } from "@/lib/accounts-api";
-import { AuthError, clearSession } from "@/lib/auth";
+import { ApiError } from "@/lib/api";
+import { AuthError, clearSession, getSession } from "@/lib/auth";
 import { resolveMediaUrl } from "@/lib/env";
 import { FieldErrors, parseFieldErrors, useManagedList } from "@/lib/use-managed-list";
+import { initials } from "../_shared/profile-sections";
 import { AdminForm } from "./admin-form";
 import styles from "../management.module.css";
-
-function initials(name: string): string {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
-}
 
 function statusBadgeClass(status: AdminStatus): string {
   return status === "active" ? styles.badgeGreen : styles.badgeGray;
@@ -45,12 +35,14 @@ export function AdminsClient() {
       status: statusFilter,
     });
 
-  const [modalMode, setModalMode] = useState<"create" | "edit" | null>(null);
-  const [editingItem, setEditingItem] = useState<AdminDetail | null>(null);
-  const [detailLoadingId, setDetailLoadingId] = useState<number | null>(null);
+  // You can't delete (or change the role/status of) your own account, so the
+  // list marks your own row and leaves its Delete button out.
+  const [selfId] = useState(() => getSession("admin")?.id ?? null);
+  const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   function handleAuthError(err: unknown): boolean {
     if (err instanceof AuthError) {
@@ -61,32 +53,21 @@ export function AdminsClient() {
     return false;
   }
 
-  async function handleEditClick(id: number) {
-    setDetailLoadingId(id);
-    try {
-      const detail = await getAdmin(id);
-      setEditingItem(detail);
-      setFieldErrors({});
-      setFormError(null);
-      setModalMode("edit");
-    } catch (err) {
-      if (!handleAuthError(err)) {
-        window.alert("Couldn't load this admin's details. Please try again.");
-      }
-    } finally {
-      setDetailLoadingId(null);
-    }
-  }
-
   async function handleDeleteClick(item: AdminListItem) {
     if (!window.confirm(`Delete admin "${item.name}"? This cannot be undone.`)) return;
+    setActionError(null);
     try {
       await deleteAdmin(item.id);
       refetch();
     } catch (err) {
-      if (!handleAuthError(err)) {
-        window.alert("Couldn't delete this admin. Please try again.");
-      }
+      if (handleAuthError(err)) return;
+      const detail =
+        err instanceof ApiError && err.body && typeof err.body === "object"
+          ? (err.body as Record<string, unknown>).detail
+          : null;
+      setActionError(
+        typeof detail === "string" ? detail : "Couldn't delete this admin. Please try again.",
+      );
     }
   }
 
@@ -95,12 +76,8 @@ export function AdminsClient() {
     setFieldErrors({});
     setFormError(null);
     try {
-      if (modalMode === "create") {
-        await createAdmin(input);
-      } else if (editingItem) {
-        await updateAdmin(editingItem.id, input);
-      }
-      setModalMode(null);
+      await createAdmin(input);
+      setModalOpen(false);
       refetch();
     } catch (err) {
       if (!handleAuthError(err)) {
@@ -121,7 +98,9 @@ export function AdminsClient() {
       <div className={styles.pageHeading}>
         <div>
           <h1 className={styles.title}>Admins</h1>
-          <p className={styles.subtitle}>Admin accounts, roles, and access status.</p>
+          <p className={styles.subtitle}>
+            Admin accounts, roles, and access status. Only super-admins can manage admins.
+          </p>
         </div>
       </div>
 
@@ -136,17 +115,17 @@ export function AdminsClient() {
           />
           <select
             className={styles.filterSelect}
+            aria-label="Filter by role"
             value={typeFilter}
             onChange={(event) => setTypeFilter(event.target.value)}
           >
             <option value="">All roles</option>
             <option value="super_admin">Super Admin</option>
             <option value="admin">Admin</option>
-            <option value="moderator">Moderator</option>
-            <option value="support">Support</option>
           </select>
           <select
             className={styles.filterSelect}
+            aria-label="Filter by status"
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
           >
@@ -159,10 +138,9 @@ export function AdminsClient() {
           type="button"
           className={styles.addButton}
           onClick={() => {
-            setEditingItem(null);
             setFieldErrors({});
             setFormError(null);
-            setModalMode("create");
+            setModalOpen(true);
           }}
         >
           + Add Admin
@@ -170,6 +148,7 @@ export function AdminsClient() {
       </div>
 
       {error && <p className={styles.errorBanner}>{error}</p>}
+      {actionError && <p className={styles.errorBanner}>{actionError}</p>}
 
       <div className={styles.tableWrap}>
         <table className={styles.table}>
@@ -210,7 +189,12 @@ export function AdminsClient() {
                         )}
                       </span>
                       <div>
-                        <div className={styles.primaryText}>{item.name}</div>
+                        <div className={styles.primaryText}>
+                          {item.name}
+                          {item.id === selfId && (
+                            <span className={styles.secondaryText}> (you)</span>
+                          )}
+                        </div>
                         <div className={styles.secondaryText}>{item.email}</div>
                       </div>
                     </div>
@@ -230,18 +214,19 @@ export function AdminsClient() {
                       <button
                         type="button"
                         className={styles.actionButton}
-                        onClick={() => handleEditClick(item.id)}
-                        disabled={detailLoadingId === item.id}
+                        onClick={() => router.push(`/admin/admins/${item.id}`)}
                       >
-                        {detailLoadingId === item.id ? "Loading…" : "Edit"}
+                        View Details
                       </button>
-                      <button
-                        type="button"
-                        className={`${styles.actionButton} ${styles.actionButtonDanger}`}
-                        onClick={() => handleDeleteClick(item)}
-                      >
-                        Delete
-                      </button>
+                      {item.id !== selfId && (
+                        <button
+                          type="button"
+                          className={`${styles.actionButton} ${styles.actionButtonDanger}`}
+                          onClick={() => handleDeleteClick(item)}
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -275,18 +260,14 @@ export function AdminsClient() {
         </div>
       </div>
 
-      {modalMode && (
-        <Modal
-          title={modalMode === "create" ? "Add Admin" : "Edit Admin"}
-          onClose={() => setModalMode(null)}
-        >
+      {modalOpen && (
+        <Modal title="Add Admin" onClose={() => setModalOpen(false)}>
           <AdminForm
-            mode={modalMode}
-            initial={editingItem}
+            mode="create"
             fieldErrors={fieldErrors}
             formError={formError}
             submitting={submitting}
-            onCancel={() => setModalMode(null)}
+            onCancel={() => setModalOpen(false)}
             onSubmit={handleFormSubmit}
           />
         </Modal>
