@@ -169,6 +169,11 @@
   color: var(--brand-amber);
 }
 
+.badgeBlue {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
 .badgeGray {
   background: var(--surface-muted);
   color: var(--brand-muted);

@@ -45,8 +45,9 @@ export function statusBadgeClass(status: ListingStatus): string {
     case "approved":
       return styles.badgeGreen;
     case "pending":
-    case "changes_requested":
       return styles.badgeAmber;
+    case "changes_requested":
+      return styles.badgeBlue;
     case "rejected":
       return styles.badgeRed;
     default:

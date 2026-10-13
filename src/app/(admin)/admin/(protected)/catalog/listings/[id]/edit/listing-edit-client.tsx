@@ -10,8 +10,8 @@ import {
   syncListingMedia,
   updateListing,
 } from "@/lib/listing-api";
-import { ApiError } from "@/lib/api";
 import { AuthError, clearSession } from "@/lib/auth";
+import { describeLoadError } from "@/lib/load-error";
 import { FieldErrors, parseFieldErrors } from "@/lib/use-managed-list";
 import { ListingForm, ListingFormValues } from "../../listing-form";
 import styles from "../../../../management.module.css";
@@ -59,11 +59,7 @@ export function ListingEditClient({
       .catch((err) => {
         if (cancelled) return;
         if (!handleAuthError(err)) {
-          setLoadError(
-            err instanceof ApiError && err.status === 404
-              ? "This listing was not found — it may have been deleted, or it is not a product."
-              : "Couldn't load this listing. Please try again.",
-          );
+          setLoadError(describeLoadError(err, "This listing was not found — it may have been deleted, or it is not a product.", "Couldn't load this listing. Please try again."));
         }
       })
       .finally(() => {

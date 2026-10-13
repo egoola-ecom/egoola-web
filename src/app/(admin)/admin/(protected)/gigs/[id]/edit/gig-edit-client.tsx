@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ApiError } from "@/lib/api";
 import { AuthError, clearSession } from "@/lib/auth";
+import { describeLoadError } from "@/lib/load-error";
 import {
   GigDetail,
   deleteGigThumbnail,
@@ -60,11 +60,7 @@ export function GigEditClient({
       .catch((err) => {
         if (cancelled) return;
         if (!handleAuthError(err)) {
-          setLoadError(
-            err instanceof ApiError && err.status === 404
-              ? "This gig was not found — it may have been deleted, or it is a product (products are under Listings)."
-              : "Couldn't load this gig. Please try again.",
-          );
+          setLoadError(describeLoadError(err, "This gig was not found — it may have been deleted, or it is a product (products are under Listings).", "Couldn't load this gig. Please try again."));
         }
       })
       .finally(() => {

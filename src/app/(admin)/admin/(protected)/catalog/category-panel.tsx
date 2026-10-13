@@ -16,6 +16,7 @@ import {
   updateCategory,
 } from "@/lib/category-api";
 import { apiErrorDetail, isConflict } from "@/lib/api";
+import { resolveMediaUrl } from "@/lib/env";
 import { AuthError, clearSession } from "@/lib/auth";
 import { FieldErrors, parseFieldErrors, useManagedList } from "@/lib/use-managed-list";
 import { CategoryParentPicker } from "./category-parent-picker";
@@ -50,7 +51,7 @@ function CategoryForm({
   onSubmit: (input: CategoryInput) => void;
 }) {
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(initial?.image_url ?? null);
+  const [preview, setPreview] = useState<string | null>(resolveMediaUrl(initial?.image_url));
   const [parentId, setParentId] = useState<number | null>(initial?.parent ?? null);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -359,7 +360,7 @@ export function CategoryPanel({ type }: { type: CategoryType }) {
                     <div className={styles.thumbCell}>
                       {item.image_url && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.image_url} alt="" className={styles.thumb} />
+                        <img src={resolveMediaUrl(item.image_url) ?? undefined} alt="" className={styles.thumb} />
                       )}
                       <span className={styles.primaryText}>{item.name}</span>
                     </div>

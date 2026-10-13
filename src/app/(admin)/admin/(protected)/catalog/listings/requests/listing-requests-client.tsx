@@ -44,6 +44,8 @@ const SORT_OPTIONS = [
   { value: "created_at", label: "Oldest created" },
   { value: "title", label: "Title A to Z" },
   { value: "-title", label: "Title Z to A" },
+  { value: "-id", label: "Newest id first" },
+  { value: "id", label: "Oldest id first" },
 ];
 
 interface Decision {

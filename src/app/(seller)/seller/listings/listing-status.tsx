@@ -28,8 +28,9 @@ export function sellerStatusClass(status: ListingStatus): string {
     case "approved":
       return management.badgeGreen;
     case "pending":
-    case "changes_requested":
       return management.badgeAmber;
+    case "changes_requested":
+      return management.badgeBlue;
     case "rejected":
       return management.badgeRed;
     default:

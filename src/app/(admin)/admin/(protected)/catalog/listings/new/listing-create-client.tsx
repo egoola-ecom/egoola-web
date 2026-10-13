@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createListing, putListingThumbnail, syncListingMedia } from "@/lib/listing-api";
+import { notifyPendingListingsChanged } from "@/lib/pending-listing-count";
 import { AuthError, clearSession } from "@/lib/auth";
 import { FieldErrors, parseFieldErrors } from "@/lib/use-managed-list";
 import { ListingForm, ListingFormValues } from "../listing-form";
@@ -27,6 +28,8 @@ export function ListingCreateClient() {
     try {
       const created = await createListing(input);
       createdId = created.id;
+      // A product created as "pending" joins the pending list: refresh the badge.
+      notifyPendingListingsChanged();
       // Media travels as multipart, which can't carry the nested price
       // tiers, so it is uploaded in a second request.
       if (files.length > 0) await syncListingMedia(created.id, files, []);

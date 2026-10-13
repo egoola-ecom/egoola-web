@@ -12,8 +12,9 @@ import {
   putListingThumbnail,
   updateListingStatus,
 } from "@/lib/listing-api";
-import { ApiError, apiErrorDetail } from "@/lib/api";
+import { apiErrorDetail } from "@/lib/api";
 import { AuthError, clearSession } from "@/lib/auth";
+import { describeLoadError } from "@/lib/load-error";
 import { notifyPendingListingsChanged } from "@/lib/pending-listing-count";
 import { FieldErrors, parseFieldErrors } from "@/lib/use-managed-list";
 import { ListingChangeHistory } from "../listing-change-history";
@@ -72,11 +73,7 @@ export function ListingDetailClient({
         if (!handleAuthError(err)) {
           // A deleted listing is a soft delete: its detail answers 404, and so
           // does the id of a gig (those open under Gigs).
-          setLoadError(
-            err instanceof ApiError && err.status === 404
-              ? "This listing was not found — it may have been deleted, or it is a gig (gigs are under Gigs)."
-              : "Couldn't load this listing. Please try again.",
-          );
+          setLoadError(describeLoadError(err, "This listing was not found — it may have been deleted, or it is a gig (gigs are under Gigs).", "Couldn't load this listing. Please try again."));
         }
       })
       .finally(() => {
