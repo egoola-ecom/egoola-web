@@ -40,6 +40,38 @@
   border-bottom-color: var(--brand-green);
 }
 
+/* The second row under the Listing tab: Product | Gigs. */
+.subTabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: -0.5rem 0 1.25rem;
+}
+
+.subTab {
+  padding: 0.3rem 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #555;
+  border: 1px solid var(--brand-border);
+  border-radius: 999px;
+  background: #fff;
+}
+
+.subTab:hover {
+  color: #1a1a1a;
+}
+
+.subTabActive {
+  color: #fff;
+  background: var(--brand-green);
+  border-color: var(--brand-green);
+}
+
+.subTabActive:hover {
+  color: #fff;
+}
+
 .state {
   display: flex;
   align-items: center;

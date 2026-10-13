@@ -101,7 +101,11 @@ function useListingNames(listing: SellerListingDetail) {
 
 /** The status history as a timeline, newest first, in the seller's words. The
  * server tells the seller who did it only as "you" or "an admin". */
-export function StatusTimeline({ listing }: { listing: SellerListingDetail }) {
+export function StatusTimeline({
+  listing,
+}: {
+  listing: Pick<SellerListingDetail, "status_change_logs">;
+}) {
   const logs = [...listing.status_change_logs].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   );

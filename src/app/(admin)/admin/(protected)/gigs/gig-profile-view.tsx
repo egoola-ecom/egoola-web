@@ -67,7 +67,7 @@ function windowText(start: string | null, end: string | null): string {
 
 /** Every package of the gig — hidden ones stay listed (greyed), since a
  * package is only ever hidden, never deleted. */
-export function PackagesTable({ gig }: { gig: GigDetail }) {
+export function PackagesTable({ gig }: { gig: Pick<GigDetail, "skus" | "currency"> }) {
   const [now] = useState(() => Date.now());
   if (gig.skus.length === 0) {
     return <p className={styles.stateRow}>This gig has no packages.</p>;

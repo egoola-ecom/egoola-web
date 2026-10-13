@@ -5,12 +5,14 @@ import Link from "next/link";
 import { ThumbnailControl } from "@/components/thumbnail-control";
 import { resolveMediaUrl } from "@/lib/env";
 import { GigDetail, GigInput } from "@/lib/gig-api";
+import { publicGeographyLoaders } from "@/lib/geography-api";
 import { ListingStatus } from "@/lib/listing-api";
 import { useGeographySelection } from "@/lib/use-geography-selection";
 import { FieldErrors } from "@/lib/use-managed-list";
 import { fromLocalInput, toLocalInput } from "../_shared/datetime";
 import { GeographyFields } from "../_shared/geography-fields";
 import { CategoryParentPicker } from "../catalog/category-parent-picker";
+import { SellerCategoryPicker } from "../catalog/listings/seller-category-picker";
 import {
   ListingOwnerKind,
   ListingOwnerPicker,
@@ -38,6 +40,13 @@ export interface GigFormValues {
   /** Create only: uploaded right after the gig exists (its own endpoint). */
   thumbnail: File | null;
 }
+
+/** What the form starts from: the shared fields of the admin's and the
+ * seller's gig (the owner only exists on the admin's). */
+export type GigFormInitial = Omit<
+  GigDetail,
+  "seller" | "posted_by_role" | "info_change_logs" | "status_change_logs"
+> & { seller?: number | null };
 
 /** Keys the form shows an error beside. Anything else the server complains
  * about is listed in the banner, so an error is never swallowed. */
@@ -90,6 +99,7 @@ function sameInstant(a: string | null | undefined, b: string | null | undefined)
  * page, and only the fields that changed are sent. */
 export function GigForm({
   mode,
+  variant = "admin",
   initial,
   fieldErrors,
   formError,
@@ -99,7 +109,11 @@ export function GigForm({
   thumbnail,
 }: {
   mode: "create" | "edit";
-  initial?: GigDetail | null;
+  /** "seller" is the seller panel's form: no owner, status or currency, the
+   * seller's own category lookup and the public geography lists, and a message
+   * to the reviewer when saving sends a gig back for review. */
+  variant?: "admin" | "seller";
+  initial?: GigFormInitial | null;
   fieldErrors: FieldErrors;
   formError: string | null;
   submitting: boolean;
@@ -108,6 +122,12 @@ export function GigForm({
   /** Edit mode: lets the thumbnail control save at once. */
   thumbnail?: ListingThumbnailHandlers;
 }) {
+  const isSeller = variant === "seller";
+  const sendsForReview =
+    isSeller &&
+    mode === "edit" &&
+    (initial?.status === "rejected" || initial?.status === "changes_requested");
+  const [reviewerNote, setReviewerNote] = useState("");
   const [categoryId, setCategoryId] = useState<number | null>(initial?.category ?? null);
   const [ownerKind, setOwnerKind] = useState<ListingOwnerKind>(
     initial?.seller != null ? "seller" : "none",
@@ -127,12 +147,15 @@ export function GigForm({
   const [deleteIds, setDeleteIds] = useState<Set<number>>(new Set());
   const [localError, setLocalError] = useState<string | null>(null);
 
-  const geo = useGeographySelection({
-    country: initial?.country,
-    state: initial?.state,
-    city: initial?.city,
-    thana: initial?.thana,
-  });
+  const geo = useGeographySelection(
+    {
+      country: initial?.country,
+      state: initial?.state,
+      city: initial?.city,
+      thana: initial?.thana,
+    },
+    isSeller ? publicGeographyLoaders : undefined,
+  );
 
   function toggleDelete(id: number) {
     setDeleteIds((prev) => {
@@ -151,7 +174,7 @@ export function GigForm({
       setLocalError("Pick a service category for this gig.");
       return;
     }
-    if (ownerKind === "seller" && ownerId == null) {
+    if (!isSeller && ownerKind === "seller" && ownerId == null) {
       setLocalError('Pick a seller, or choose "No owner".');
       return;
     }
@@ -247,6 +270,16 @@ export function GigForm({
       if (built.skus) input.skus = built.skus;
     }
 
+    if (isSeller) {
+      // A seller never sends these; the server ignores them anyway.
+      delete input.seller;
+      delete input.currency;
+      delete input.status;
+      const message = reviewerNote.trim();
+      if (sendsForReview && message) input.note = message;
+      else delete input.note;
+    }
+
     onSubmit({
       input,
       files: newFiles,
@@ -265,7 +298,9 @@ export function GigForm({
     return (
       <p className={styles.fieldError}>
         {message.slice(0, match.index)}{" "}
-        <Link href={`/admin/gigs/${match[1]}`}>Open the existing gig (#{match[1]})</Link>
+        <Link href={isSeller ? `/seller/gigs/${match[1]}/edit` : `/admin/gigs/${match[1]}`}>
+          Open the existing gig (#{match[1]})
+        </Link>
       </p>
     );
   }
@@ -347,28 +382,41 @@ export function GigForm({
         </div>
 
         <div className={styles.formGridFull}>
-          <CategoryParentPicker
-            type="service"
-            value={categoryId}
-            onChange={setCategoryId}
-            label="Service category"
-            noneLabel={null}
-            inputId="gig-category-search"
-            activeOnly
-          />
+          {isSeller ? (
+            <SellerCategoryPicker
+              type="service"
+              value={categoryId}
+              onChange={setCategoryId}
+              inputId="gig-category-search"
+            />
+          ) : (
+            <CategoryParentPicker
+              type="service"
+              value={categoryId}
+              onChange={setCategoryId}
+              label="Service category"
+              noneLabel={null}
+              inputId="gig-category-search"
+              activeOnly
+            />
+          )}
           {err("category")}
         </div>
 
-        <ListingOwnerPicker
-          kind={ownerKind}
-          ownerId={ownerId}
-          onChange={(kind, id) => {
-            setOwnerKind(kind);
-            setOwnerId(id);
-          }}
-          noneLabel="No owner (admin gig)"
-        />
-        {err("seller")}
+        {!isSeller && (
+          <>
+            <ListingOwnerPicker
+              kind={ownerKind}
+              ownerId={ownerId}
+              onChange={(kind, id) => {
+                setOwnerKind(kind);
+                setOwnerId(id);
+              }}
+              noneLabel="No owner (admin gig)"
+            />
+            {err("seller")}
+          </>
+        )}
 
         <p className={styles.sectionDivider}>Packages &amp; pricing</p>
         <div className={styles.formGridFull}>
@@ -383,19 +431,21 @@ export function GigForm({
           />
         </div>
 
-        <div className={styles.field}>
-          <label className={styles.label} htmlFor="gig-currency">
-            Currency
-          </label>
-          <input
-            id="gig-currency"
-            className={styles.input}
-            value={currency}
-            onChange={(event) => setCurrency(event.target.value)}
-            maxLength={8}
-          />
-          {err("currency")}
-        </div>
+        {!isSeller && (
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="gig-currency">
+              Currency
+            </label>
+            <input
+              id="gig-currency"
+              className={styles.input}
+              value={currency}
+              onChange={(event) => setCurrency(event.target.value)}
+              maxLength={8}
+            />
+            {err("currency")}
+          </div>
+        )}
 
         <p className={styles.sectionDivider}>Service details</p>
 
@@ -489,8 +539,8 @@ export function GigForm({
             <ThumbnailControl
               mode="staged"
               imageUrl={null}
-              actorType="admin"
-              loginPath="/admin/login"
+              actorType={isSeller ? "seller" : "admin"}
+              loginPath={isSeller ? "/login" : "/admin/login"}
               file={thumbnailFile}
               onFileChange={setThumbnailFile}
               disabled={submitting}
@@ -581,7 +631,7 @@ export function GigForm({
           ))}
         </div>
 
-        {mode === "create" && (
+        {mode === "create" && !isSeller && (
           <>
             <p className={styles.sectionDivider}>Initial status</p>
             <div className={styles.field}>
@@ -620,6 +670,30 @@ export function GigForm({
             )}
           </>
         )}
+
+        {sendsForReview && (
+          <>
+            <p className={styles.sectionDivider}>Send for review</p>
+            <div className={`${styles.field} ${styles.formGridFull}`}>
+              <label className={styles.label} htmlFor="gig-reviewer-note">
+                Message to the reviewer (optional)
+              </label>
+              <textarea
+                id="gig-reviewer-note"
+                className={styles.textarea}
+                value={reviewerNote}
+                maxLength={1000}
+                placeholder="For example: I added a clear photo."
+                onChange={(event) => setReviewerNote(event.target.value)}
+              />
+              {err("note")}
+              <p className={styles.fieldHint}>
+                Saving sends this gig back to the admin for review. There is no separate resubmit
+                button.
+              </p>
+            </div>
+          </>
+        )}
       </div>
 
       <div className={styles.formActions}>
@@ -632,7 +706,13 @@ export function GigForm({
           Cancel
         </button>
         <button type="submit" className={styles.submitButton} disabled={submitting}>
-          {submitting ? "Saving…" : mode === "create" ? "Create Gig" : "Save Changes"}
+          {submitting
+            ? "Saving…"
+            : mode === "create"
+              ? "Create Gig"
+              : sendsForReview
+                ? "Save and send for review"
+                : "Save Changes"}
         </button>
       </div>
     </form>

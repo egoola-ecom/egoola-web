@@ -50,6 +50,16 @@ function StatusBanner({ me }: { me: SellerMe }) {
   );
 }
 
+const LISTING_HREF = "/seller/listings";
+const GIGS_HREF = "/seller/gigs";
+
+/** The second row under the Listing tab. A new product or gig is made with the
+ * Create button on its own list page, so there are no extra entries. */
+const LISTING_SUBTABS = [
+  { href: LISTING_HREF, label: "Product" },
+  { href: GIGS_HREF, label: "Gigs" },
+];
+
 export default function SellerLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
@@ -108,12 +118,15 @@ export default function SellerLayout({
     ...(me.can_operate
       ? [
           { href: "/seller", label: "Dashboard" },
-          { href: "/seller/listings", label: "Listings" },
+          // "Listing" opens Product; Product and Gigs are its second row.
+          { href: LISTING_HREF, label: "Listing" },
         ]
       : []),
     { href: "/seller/profile", label: "My profile" },
     { href: "/seller/password", label: "Password" },
   ];
+
+  const inListing = pathname.startsWith(LISTING_HREF) || pathname.startsWith(GIGS_HREF);
 
   return (
     <SellerContext.Provider value={{ me, setMe: setMeState, reload, handleAuthError }}>
@@ -123,7 +136,7 @@ export default function SellerLayout({
         loginPath="/login"
       />
       <div className={shell.page}>
-        <div className={`${shell.wrap} ${pathname.startsWith("/seller/listings") ? shell.wrapWide : ""}`}>
+        <div className={`${shell.wrap} ${inListing ? shell.wrapWide : ""}`}>
           <StatusBanner me={me} />
           <nav className={shell.tabs} aria-label="Seller sections">
             {tabs.map((tab) => (
@@ -131,7 +144,11 @@ export default function SellerLayout({
                 key={tab.href}
                 href={tab.href}
                 className={`${shell.tab} ${
-                  (tab.href === "/seller" ? pathname === "/seller" : pathname.startsWith(tab.href))
+                  (tab.href === "/seller"
+                    ? pathname === "/seller"
+                    : tab.href === LISTING_HREF
+                      ? inListing
+                      : pathname.startsWith(tab.href))
                     ? shell.tabActive
                     : ""
                 }`}
@@ -140,6 +157,21 @@ export default function SellerLayout({
               </Link>
             ))}
           </nav>
+          {inListing && me.can_operate && (
+            <nav className={shell.subTabs} aria-label="Listing sections">
+              {LISTING_SUBTABS.map((tab) => (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  className={`${shell.subTab} ${
+                    pathname.startsWith(tab.href) ? shell.subTabActive : ""
+                  }`}
+                >
+                  {tab.label}
+                </Link>
+              ))}
+            </nav>
+          )}
           {children}
         </div>
       </div>
