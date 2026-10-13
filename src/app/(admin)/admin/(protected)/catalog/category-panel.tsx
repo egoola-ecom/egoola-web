@@ -15,9 +15,11 @@ import {
   listCategories,
   updateCategory,
 } from "@/lib/category-api";
+import { apiErrorDetail, isConflict } from "@/lib/api";
 import { AuthError, clearSession } from "@/lib/auth";
 import { FieldErrors, parseFieldErrors, useManagedList } from "@/lib/use-managed-list";
 import { CategoryParentPicker } from "./category-parent-picker";
+import { DeleteConflictBanner } from "../_shared/delete-conflict";
 import { ReadonlyField } from "../_shared/readonly-field";
 import styles from "../management.module.css";
 
@@ -211,15 +213,43 @@ export function CategoryPanel({ type }: { type: CategoryType }) {
     return false;
   }
 
+  const [actionError, setActionError] = useState<string | null>(null);
+  // A 409 delete: the server's message, plus the category it was about so
+  // "Deactivate instead" can act on it.
+  const [conflict, setConflict] = useState<{ item: CategoryItem; message: string } | null>(null);
+
   async function handleDeleteClick(item: CategoryItem) {
     if (!window.confirm(`Delete category "${item.name}"? This cannot be undone.`)) return;
+    setActionError(null);
+    setConflict(null);
     try {
       await deleteCategory(item.id);
       refetch();
     } catch (err) {
-      if (!handleAuthError(err)) {
-        window.alert("Couldn't delete this category. Please try again.");
-      }
+      if (handleAuthError(err)) return;
+      const message = apiErrorDetail(err) ?? "Couldn't delete this category. Please try again.";
+      if (isConflict(err)) setConflict({ item, message });
+      else setActionError(message);
+    }
+  }
+
+  async function deactivateConflicting() {
+    if (!conflict) return;
+    const { item } = conflict;
+    try {
+      await updateCategory(item.id, {
+        type: item.type,
+        name: item.name,
+        parent: item.parent,
+        sort_order: item.sort_order,
+        status: "inactive",
+      });
+      setConflict(null);
+      refetch();
+    } catch (err) {
+      if (handleAuthError(err)) return;
+      setConflict(null);
+      setActionError(apiErrorDetail(err) ?? "Couldn't deactivate this category.");
     }
   }
 
@@ -288,6 +318,14 @@ export function CategoryPanel({ type }: { type: CategoryType }) {
       </div>
 
       {error && <p className={styles.errorBanner}>{error}</p>}
+      {actionError && <p className={styles.errorBanner}>{actionError}</p>}
+      {conflict && (
+        <DeleteConflictBanner
+          message={conflict.message}
+          onDeactivate={deactivateConflicting}
+          onDismiss={() => setConflict(null)}
+        />
+      )}
 
       <div className={styles.tableWrap}>
         <table className={styles.table}>

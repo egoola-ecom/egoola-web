@@ -44,6 +44,7 @@ function TreeRow({
   depth,
   selectedId,
   expanded,
+  activeOnly,
   onToggle,
   onSelect,
 }: {
@@ -51,19 +52,30 @@ function TreeRow({
   depth: number;
   selectedId: number | null;
   expanded: Set<number>;
+  activeOnly: boolean;
   onToggle: (id: number) => void;
   onSelect: (id: number) => void;
 }) {
   const hasChildren = node.children.length > 0;
   const isExpanded = expanded.has(node.id);
   const isSelected = node.id === selectedId;
+  // An inactive category can't be chosen for a new listing (400), but it stays
+  // in the tree so its active sub-categories can still be reached.
+  const blocked = activeOnly && node.status === "inactive";
 
   return (
     <div>
       <div
         className={`${styles.treeRow} ${isSelected ? styles.treeRowSelected : ""}`}
-        style={{ paddingLeft: `${depth * 1.1 + 0.5}rem` }}
-        onClick={() => onSelect(node.id)}
+        style={{
+          paddingLeft: `${depth * 1.1 + 0.5}rem`,
+          ...(blocked ? { opacity: 0.5, cursor: "not-allowed" } : {}),
+        }}
+        title={blocked ? "Inactive categories can't be chosen" : undefined}
+        aria-disabled={blocked || undefined}
+        onClick={() => {
+          if (!blocked) onSelect(node.id);
+        }}
       >
         <span
           role="button"
@@ -90,6 +102,7 @@ function TreeRow({
               depth={depth + 1}
               selectedId={selectedId}
               expanded={expanded}
+              activeOnly={activeOnly}
               onToggle={onToggle}
               onSelect={onSelect}
             />
@@ -111,11 +124,25 @@ export function CategoryParentPicker({
   value,
   excludeId,
   onChange,
+  label = "Parent category",
+  noneLabel = "No parent (top-level)",
+  inputId = "parent-search",
+  activeOnly = false,
 }: {
   type: CategoryType;
   value: number | null;
   excludeId?: number;
   onChange: (id: number | null) => void;
+  /** Field label — the listing form reuses this picker to choose a
+   * listing's own category. */
+  label?: string;
+  /** Text of the "nothing selected" row; `null` hides that row entirely
+   * (for a required choice such as a listing's category). */
+  noneLabel?: string | null;
+  inputId?: string;
+  /** Greys out inactive categories and refuses them as a choice — a new
+   * listing may only use an active category. */
+  activeOnly?: boolean;
 }) {
   const [fullTree, setFullTree] = useState<CategoryTreeNode[]>([]);
   const [filteredTree, setFilteredTree] = useState<CategoryTreeNode[]>([]);
@@ -172,11 +199,11 @@ export function CategoryParentPicker({
 
   return (
     <div className={styles.field}>
-      <label className={styles.label} htmlFor="parent-search">
-        Parent category
+      <label className={styles.label} htmlFor={inputId}>
+        {label}
       </label>
       <input
-        id="parent-search"
+        id={inputId}
         type="search"
         className={styles.input}
         placeholder="Search categories…"
@@ -184,13 +211,15 @@ export function CategoryParentPicker({
         onChange={(event) => setQuery(event.target.value)}
       />
       <div className={styles.treeBox}>
-        <div
-          className={`${styles.treeRow} ${value == null ? styles.treeRowSelected : ""}`}
-          onClick={() => onChange(null)}
-        >
-          <span className={styles.treeToggle} />
-          <span>No parent (top-level)</span>
-        </div>
+        {noneLabel != null && (
+          <div
+            className={`${styles.treeRow} ${value == null ? styles.treeRowSelected : ""}`}
+            onClick={() => onChange(null)}
+          >
+            <span className={styles.treeToggle} />
+            <span>{noneLabel}</span>
+          </div>
+        )}
         {displayTree.length === 0 ? (
           <div className={styles.treeEmpty}>No categories found.</div>
         ) : (
@@ -201,6 +230,7 @@ export function CategoryParentPicker({
               depth={0}
               selectedId={value}
               expanded={expanded}
+              activeOnly={activeOnly}
               onToggle={toggle}
               onSelect={onChange}
             />
@@ -209,7 +239,9 @@ export function CategoryParentPicker({
       </div>
       <p className={styles.fieldHint}>
         Selected:{" "}
-        {selectedPath ? selectedPath.map((node) => node.name).join(" › ") : "No parent (top-level)"}
+        {selectedPath
+          ? selectedPath.map((node) => node.name).join(" › ")
+          : (noneLabel ?? "None selected")}
       </p>
     </div>
   );
