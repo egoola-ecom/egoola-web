@@ -13,6 +13,7 @@ import {
 import { AuthError, clearSession } from "@/lib/auth";
 import { describeLoadError } from "@/lib/load-error";
 import { FieldErrors, parseFieldErrors } from "@/lib/use-managed-list";
+import { listingChanges } from "@/app/(seller)/seller/listings/listing-payload";
 import { ListingForm, ListingFormValues } from "../../listing-form";
 import styles from "../../../../management.module.css";
 
@@ -77,7 +78,13 @@ export function ListingEditClient({
     setFieldErrors({});
     setFormError(null);
     try {
-      await updateListing(id, input);
+      if (!listing) return;
+      // A PATCH carries only what changed. catalog_type and posted_by_role can
+      // never change after creation, so they are never sent on an edit.
+      const changes = listingChanges(input, listing);
+      delete changes.catalog_type;
+      delete changes.posted_by_role;
+      if (Object.keys(changes).length > 0) await updateListing(id, changes);
       // Media can't ride along with the nested price tiers, so it is saved
       // in its own multipart request.
       if (files.length > 0 || deleteIds.length > 0) {

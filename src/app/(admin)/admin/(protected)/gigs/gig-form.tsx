@@ -3,10 +3,18 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ThumbnailControl } from "@/components/thumbnail-control";
+import { MediaPreview } from "@/components/media-preview";
 import { resolveMediaUrl } from "@/lib/env";
 import { GigDetail, GigInput } from "@/lib/gig-api";
 import { publicGeographyLoaders } from "@/lib/geography-api";
 import { ListingStatus } from "@/lib/listing-api";
+import {
+  LISTING_MEDIA_ACCEPT,
+  LISTING_MEDIA_MAX_BYTES,
+  LISTING_MEDIA_MAX_PER_LISTING,
+  LISTING_MEDIA_MAX_PER_REQUEST,
+  LISTING_MEDIA_TYPES,
+} from "@/lib/seller-listing-api";
 import { useGeographySelection } from "@/lib/use-geography-selection";
 import { FieldErrors } from "@/lib/use-managed-list";
 import { fromLocalInput, toLocalInput } from "../_shared/datetime";
@@ -146,6 +154,7 @@ export function GigForm({
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [deleteIds, setDeleteIds] = useState<Set<number>>(new Set());
   const [localError, setLocalError] = useState<string | null>(null);
+  const [mediaMessage, setMediaMessage] = useState<string | null>(null);
 
   const geo = useGeographySelection(
     {
@@ -156,6 +165,36 @@ export function GigForm({
     },
     isSeller ? publicGeographyLoaders : undefined,
   );
+
+  const keptMediaCount = (initial?.media ?? []).filter((m) => !deleteIds.has(m.id)).length;
+
+  /** Adds picked files. For a seller the server's media limits are checked
+   * here too (type, 10 MB each, 10 per save, 20 per gig); an admin has none. */
+  function addFiles(picked: File[]) {
+    setMediaMessage(null);
+    if (picked.length === 0) return;
+    if (!isSeller) {
+      setNewFiles((prev) => [...prev, ...picked]);
+      return;
+    }
+    const problems: string[] = [];
+    const accepted: File[] = [];
+    for (const file of picked) {
+      if (!LISTING_MEDIA_TYPES.includes(file.type)) {
+        problems.push(`${file.name}: only JPG, PNG, WEBP, GIF, MP4 or PDF files are accepted.`);
+      } else if (file.size > LISTING_MEDIA_MAX_BYTES) {
+        problems.push(`${file.name}: files can be up to 10 MB.`);
+      } else if (newFiles.length + accepted.length >= LISTING_MEDIA_MAX_PER_REQUEST) {
+        problems.push(`${file.name}: you can add up to ${LISTING_MEDIA_MAX_PER_REQUEST} files at a time.`);
+      } else if (keptMediaCount + newFiles.length + accepted.length >= LISTING_MEDIA_MAX_PER_LISTING) {
+        problems.push(`${file.name}: a gig can have up to ${LISTING_MEDIA_MAX_PER_LISTING} files.`);
+      } else {
+        accepted.push(file);
+      }
+    }
+    if (accepted.length > 0) setNewFiles((prev) => [...prev, ...accepted]);
+    if (problems.length > 0) setMediaMessage(problems.join(" "));
+  }
 
   function toggleDelete(id: number) {
     setDeleteIds((prev) => {
@@ -172,6 +211,16 @@ export function GigForm({
 
     if (categoryId == null) {
       setLocalError("Pick a service category for this gig.");
+      return;
+    }
+    if (
+      isSeller &&
+      (newFiles.length > LISTING_MEDIA_MAX_PER_REQUEST ||
+        keptMediaCount + newFiles.length > LISTING_MEDIA_MAX_PER_LISTING)
+    ) {
+      setLocalError(
+        `A gig can have up to ${LISTING_MEDIA_MAX_PER_LISTING} files, and you can add ${LISTING_MEDIA_MAX_PER_REQUEST} at a time. Remove some files first.`,
+      );
       return;
     }
     if (!isSeller && ownerKind === "seller" && ownerId == null) {
@@ -554,6 +603,7 @@ export function GigForm({
               onUpload={thumbnail.upload}
               onRemove={thumbnail.remove}
               onFailure={thumbnail.onFailure}
+              confirmUpload={thumbnail.confirmUpload}
               disabled={submitting}
             />
           ) : null}
@@ -571,12 +621,7 @@ export function GigForm({
                   key={media.id}
                   className={`${styles.mediaTile} ${removing ? styles.mediaTileRemoving : ""}`}
                 >
-                  {media.media_type === "image" && url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={url} alt="" className={styles.mediaTilePreview} />
-                  ) : (
-                    <span className={styles.mediaTilePreview}>{media.media_type}</span>
-                  )}
+                  <MediaPreview type={media.media_type} url={url} />
                   <button
                     type="button"
                     className={styles.mediaRemoveToggle}
@@ -597,11 +642,10 @@ export function GigForm({
               id="gig-media-files"
               type="file"
               multiple
-              accept="image/*,video/*,application/pdf"
+              accept={isSeller ? LISTING_MEDIA_ACCEPT : "image/*,video/*,application/pdf"}
               style={{ display: "none" }}
               onChange={(event) => {
-                const picked = Array.from(event.target.files ?? []);
-                if (picked.length > 0) setNewFiles((prev) => [...prev, ...picked]);
+                addFiles(Array.from(event.target.files ?? []));
                 event.target.value = "";
               }}
             />
@@ -624,6 +668,13 @@ export function GigForm({
               ))}
             </div>
           )}
+          {isSeller && (
+            <p className={styles.fieldHint}>
+              JPG, PNG, WEBP, GIF, MP4 or PDF. Up to 10 MB each, {LISTING_MEDIA_MAX_PER_REQUEST} at a
+              time and {LISTING_MEDIA_MAX_PER_LISTING} per gig. A removed file is deleted for good.
+            </p>
+          )}
+          {mediaMessage && <p className={styles.fieldError}>{mediaMessage}</p>}
           {fieldErrors.media_file?.map((message, i) => (
             <p key={i} className={styles.fieldError}>
               {message}

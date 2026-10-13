@@ -5,6 +5,7 @@ import management from "@/app/(admin)/admin/(protected)/management.module.css";
 import { ReadonlyField } from "@/app/(admin)/admin/(protected)/_shared/readonly-field";
 import { formatDateTime } from "@/app/(admin)/admin/(protected)/catalog/listings/listing-utils";
 import { PackagesTable } from "@/app/(admin)/admin/(protected)/gigs/gig-profile-view";
+import { MediaPreview } from "@/components/media-preview";
 import { resolveMediaUrl } from "@/lib/env";
 import { GeographyOption, publicGeographyLoaders } from "@/lib/geography-api";
 import { SellerGigDetail } from "@/lib/seller-gig-api";
@@ -150,12 +151,7 @@ export function SellerGigView({ gig }: { gig: SellerGigDetail }) {
                 const url = resolveMediaUrl(media.media_url);
                 return (
                   <div key={media.id} className={management.mediaTile}>
-                    {media.media_type === "image" && url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={url} alt="" className={management.mediaTilePreview} />
-                    ) : (
-                      <span className={management.mediaTilePreview}>{media.media_type}</span>
-                    )}
+                    <MediaPreview type={media.media_type} url={url} />
                     <a
                       href={url ?? undefined}
                       target="_blank"

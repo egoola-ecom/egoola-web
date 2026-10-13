@@ -163,6 +163,7 @@ export function GigDetailClient({ id, notice }: { id: number; notice: string | n
           onUpload={(file) => putSellerGigThumbnail(id, file)}
           onRemove={() => deleteSellerGigThumbnail(id)}
           onFailure={fail}
+          confirmUpload={needsFixing(gig.status) ? "This gig was rejected or sent back for changes. Changing its thumbnail sends it back to the admin for review. Continue?" : undefined}
           onChanged={() => void refresh()}
         />
         {needsFixing(gig.status) && (

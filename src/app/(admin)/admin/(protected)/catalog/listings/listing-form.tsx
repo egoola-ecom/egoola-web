@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AttributeItem } from "@/lib/attribute-api";
+import { MediaPreview } from "@/components/media-preview";
 import { resolveMediaUrl } from "@/lib/env";
 import { publicGeographyLoaders } from "@/lib/geography-api";
 import {
@@ -62,6 +63,8 @@ export interface ListingThumbnailHandlers {
   upload: (file: File) => Promise<{ image_url: string }>;
   remove: () => Promise<void>;
   onFailure?: (err: unknown) => string | null;
+  /** Asked before an upload (seller side, on a rejected item). */
+  confirmUpload?: string;
 }
 
 interface TierRow {
@@ -71,6 +74,43 @@ interface TierRow {
   discounted_price: string;
   /** Id of one of this listing's SKUs ("" = the whole listing). */
   listing_sku: string;
+}
+
+/** The checks the server makes on `price_tiers`, done first so the admin sees
+ * them beside the tiers: whole quantities of 1 or more, max not below min, no
+ * overlap, only the last tier open-ended, discounted price not above price. */
+function validateTiers(rows: TierRow[]): string | null {
+  const parsed: { min: number; max: number | null; price: number; disc: number | null }[] = [];
+  for (const row of rows) {
+    const anyValue = [row.min_qty, row.max_qty, row.price, row.discounted_price].some(
+      (value) => value.trim() !== "",
+    );
+    if (!anyValue) continue;
+    if (row.min_qty.trim() === "" || row.price.trim() === "") {
+      return "Fill the min quantity and the price of every tier, or remove the empty row.";
+    }
+    const min = Number(row.min_qty);
+    const max = row.max_qty.trim() === "" ? null : Number(row.max_qty);
+    const price = Number(row.price);
+    const disc = row.discounted_price.trim() === "" ? null : Number(row.discounted_price);
+    if (!Number.isInteger(min) || min < 1) return "A tier's min quantity must be a whole number, 1 or more.";
+    if (max != null && (!Number.isInteger(max) || max < min)) {
+      return "A tier's max quantity cannot be below its min quantity.";
+    }
+    if (!(price >= 0)) return "A tier's price must be 0 or more.";
+    if (disc != null && !(disc >= 0 && disc <= price)) {
+      return "A tier's discounted price cannot be higher than its price.";
+    }
+    parsed.push({ min, max, price, disc });
+  }
+  parsed.sort((a, b) => a.min - b.min);
+  for (let i = 0; i < parsed.length - 1; i += 1) {
+    if (parsed[i].max == null) return "Only the last tier can have no max quantity.";
+    if ((parsed[i].max as number) >= parsed[i + 1].min) {
+      return "Price tier quantity ranges must not overlap.";
+    }
+  }
+  return null;
 }
 
 function toTierRows(initial?: ListingFormInitial | null): TierRow[] {
@@ -182,6 +222,7 @@ export function ListingForm({
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [deleteIds, setDeleteIds] = useState<Set<number>>(new Set());
   const [localError, setLocalError] = useState<string | null>(null);
+  const [tierError, setTierError] = useState<string | null>(null);
   const [mediaMessage, setMediaMessage] = useState<string | null>(null);
   // The seller's message to the reviewer; only used when saving a rejected or
   // changes-requested listing (that save sends it back for review).
@@ -304,6 +345,13 @@ export function ListingForm({
       setLocalError(
         `A listing can have up to ${LISTING_MEDIA_MAX_PER_LISTING} files, and you can add ${LISTING_MEDIA_MAX_PER_REQUEST} at a time. Remove some files first.`,
       );
+      return;
+    }
+
+    const tiersProblem = showTiers ? validateTiers(tiers) : null;
+    setTierError(tiersProblem);
+    if (tiersProblem) {
+      setLocalError("Fix the price tiers, then save again.");
       return;
     }
 
@@ -645,7 +693,7 @@ export function ListingForm({
                   <input
                     id={`tier-${key}-${index}`}
                     type="number"
-                    min="0"
+                    min={key === "min_qty" || key === "max_qty" ? "1" : "0"}
                     step={key === "min_qty" || key === "max_qty" ? "1" : "0.01"}
                     className={styles.input}
                     value={tier[key]}
@@ -681,6 +729,7 @@ export function ListingForm({
               )}
             </div>
           ))}
+          {tierError && <p className={styles.fieldError}>{tierError}</p>}
           {fieldErrors.price_tiers?.map((message, i) => (
             <p key={i} className={styles.fieldError}>
               {message}
@@ -711,7 +760,8 @@ export function ListingForm({
                 id="listing-min-order-qty"
                 name="min_order_qty"
                 type="number"
-                min="0"
+                min="1"
+                step="1"
                 className={styles.input}
                 defaultValue={initial?.min_order_qty ?? ""}
               />
@@ -863,6 +913,7 @@ export function ListingForm({
               onUpload={thumbnail.upload}
               onRemove={thumbnail.remove}
               onFailure={thumbnail.onFailure}
+              confirmUpload={thumbnail.confirmUpload}
               disabled={submitting}
             />
           ) : null}
@@ -880,12 +931,7 @@ export function ListingForm({
                   key={media.id}
                   className={`${styles.mediaTile} ${removing ? styles.mediaTileRemoving : ""}`}
                 >
-                  {media.media_type === "image" && url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={url} alt="" className={styles.mediaTilePreview} />
-                  ) : (
-                    <span className={styles.mediaTilePreview}>{media.media_type}</span>
-                  )}
+                  <MediaPreview type={media.media_type} url={url} />
                   <button
                     type="button"
                     className={styles.mediaRemoveToggle}

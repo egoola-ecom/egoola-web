@@ -32,6 +32,12 @@ export function GigsClient() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [status, setStatus] = useState("");
   const [priceType, setPriceType] = useState("");
+  const [category, setCategory] = useState("");
+  const [createdFrom, setCreatedFrom] = useState("");
+  const [createdTo, setCreatedTo] = useState("");
+  const [requestedFrom, setRequestedFrom] = useState("");
+  const [requestedTo, setRequestedTo] = useState("");
+  const [moreFilters, setMoreFilters] = useState(false);
   const [ordering, setOrdering] = useState("-created_at");
   const [offset, setOffset] = useState(0);
   const [rows, setRows] = useState<SellerGigRow[]>([]);
@@ -51,7 +57,17 @@ export function GigsClient() {
       .catch(() => setCategories([]));
   }, []);
 
-  const filterKey = JSON.stringify([debouncedSearch, status, priceType, ordering]);
+  const filterKey = JSON.stringify([
+    debouncedSearch,
+    status,
+    priceType,
+    category,
+    createdFrom,
+    createdTo,
+    requestedFrom,
+    requestedTo,
+    ordering,
+  ]);
 
   // A new search / filter / sort starts again from the first page.
   const previousFilterKey = useRef(filterKey);
@@ -74,6 +90,11 @@ export function GigsClient() {
       search: debouncedSearch,
       status,
       price_type: priceType,
+      category,
+      created_from: createdFrom,
+      created_to: createdTo,
+      requested_from: requestedFrom,
+      requested_to: requestedTo,
     };
     for (const [key, value] of Object.entries(filters)) if (value) params.set(key, value);
 
@@ -98,7 +119,16 @@ export function GigsClient() {
   }, [filterKey, offset]);
 
   const categoryName = (id: number) => categories.find((c) => c.id === id)?.name ?? `#${id}`;
-  const anyFilter = Boolean(debouncedSearch || status || priceType);
+  const anyFilter = Boolean(
+    debouncedSearch ||
+      status ||
+      priceType ||
+      category ||
+      createdFrom ||
+      createdTo ||
+      requestedFrom ||
+      requestedTo,
+  );
   const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
 
@@ -165,6 +195,14 @@ export function GigsClient() {
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            className={management.actionButton}
+            aria-expanded={moreFilters}
+            onClick={() => setMoreFilters(!moreFilters)}
+          >
+            {moreFilters ? "Fewer filters" : "More filters"}
+          </button>
           {anyFilter && (
             <button
               type="button"
@@ -173,6 +211,11 @@ export function GigsClient() {
                 setSearch("");
                 setStatus("");
                 setPriceType("");
+                setCategory("");
+                setCreatedFrom("");
+                setCreatedTo("");
+                setRequestedFrom("");
+                setRequestedTo("");
               }}
             >
               Clear filters
@@ -180,6 +223,44 @@ export function GigsClient() {
           )}
         </div>
       </div>
+
+      {moreFilters && (
+        <div className={management.toolbar}>
+          <div className={management.toolbarLeft}>
+            <select
+              className={management.filterSelect}
+              aria-label="Filter by category"
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+            >
+              <option value="">All categories</option>
+              {categories.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+            {(
+              [
+                ["Created from", createdFrom, setCreatedFrom],
+                ["Created to", createdTo, setCreatedTo],
+                ["Sent for review from", requestedFrom, setRequestedFrom],
+                ["Sent for review to", requestedTo, setRequestedTo],
+              ] as const
+            ).map(([label, value, setValue]) => (
+              <label key={label} className={management.secondaryText}>
+                {label}{" "}
+                <input
+                  type="date"
+                  className={management.filterSelect}
+                  value={value}
+                  onChange={(event) => setValue(event.target.value)}
+                />
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
 
       {error && <p className={management.errorBanner}>{error}</p>}
 

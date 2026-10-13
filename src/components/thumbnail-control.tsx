@@ -41,6 +41,10 @@ type Props = {
   onFailure?: (err: unknown) => string | null;
   disabled?: boolean;
   label?: string;
+  /** When set, a chosen picture is only uploaded after the user confirms this
+   * message — used on the seller side, where changing the thumbnail of a
+   * rejected / changes-requested item sends it back to review. */
+  confirmUpload?: string;
 } & (
   | {
       /** Edit and details pages: a chosen file is uploaded at once. */
@@ -65,7 +69,7 @@ type Props = {
  * component for the admin and the seller screens.
  */
 export function ThumbnailControl(props: Props) {
-  const { imageUrl, actorType, loginPath, onFailure, disabled = false, label } = props;
+  const { imageUrl, actorType, loginPath, onFailure, disabled = false, label, confirmUpload } = props;
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [current, setCurrent] = useState<string | null>(imageUrl);
@@ -119,6 +123,7 @@ export function ThumbnailControl(props: Props) {
       props.onFileChange(file);
       return;
     }
+    if (confirmUpload && !window.confirm(confirmUpload)) return;
     setBusy(true);
     try {
       const result = await props.onUpload(file);

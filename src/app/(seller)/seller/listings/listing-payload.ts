@@ -1,4 +1,4 @@
-import type { ListingInput, ListingPriceTierInput } from "@/lib/listing-api";
+import type { ListingCore, ListingInput, ListingPriceTierInput } from "@/lib/listing-api";
 import type { SellerListingDetail, SellerListingInput } from "@/lib/seller-listing-api";
 
 /** What the form builds, as the seller API accepts it. A seller never sends
@@ -62,10 +62,7 @@ function sameTiers(sent: ListingPriceTierInput[], saved: SellerListingDetail["pr
 /** Only the fields that really differ from the saved listing — a PATCH is
  * meant to carry just what changed. `skus` already holds only the changed or
  * new SKUs; `note` (the message to the reviewer) is always kept. */
-export function sellerChanges(
-  body: SellerListingInput,
-  saved: SellerListingDetail,
-): Partial<SellerListingInput> {
+export function listingChanges<T extends object>(body: T, saved: ListingCore): Partial<T> {
   const current = saved as unknown as Record<string, unknown>;
   const changed: Record<string, unknown> = {};
   const entries = Object.entries(body) as [string, unknown][];
@@ -88,5 +85,13 @@ export function sellerChanges(
       changed[key] = value;
     }
   }
-  return changed as Partial<SellerListingInput>;
+  return changed as Partial<T>;
+}
+
+/** The seller's edit sends only what changed too. */
+export function sellerChanges(
+  body: SellerListingInput,
+  saved: SellerListingDetail,
+): Partial<SellerListingInput> {
+  return listingChanges(body, saved);
 }

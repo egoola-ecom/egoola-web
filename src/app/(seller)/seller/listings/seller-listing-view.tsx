@@ -12,6 +12,7 @@ import {
   SkuTable,
   tierScope,
 } from "@/app/(admin)/admin/(protected)/catalog/listings/listing-profile-view";
+import { MediaPreview } from "@/components/media-preview";
 import { resolveMediaUrl } from "@/lib/env";
 import { GeographyOption, publicGeographyLoaders } from "@/lib/geography-api";
 import {
@@ -265,12 +266,7 @@ export function SellerListingView({ listing }: { listing: SellerListingDetail })
                 const url = resolveMediaUrl(media.media_url);
                 return (
                   <div key={media.id} className={management.mediaTile}>
-                    {media.media_type === "image" && url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={url} alt="" className={management.mediaTilePreview} />
-                    ) : (
-                      <span className={management.mediaTilePreview}>{media.media_type}</span>
-                    )}
+                    <MediaPreview type={media.media_type} url={url} />
                     <a href={url ?? undefined} target="_blank" rel="noreferrer" className={management.mediaLink}>
                       Open
                     </a>

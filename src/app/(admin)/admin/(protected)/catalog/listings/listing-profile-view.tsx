@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getBuyer, getSeller } from "@/lib/accounts-api";
 import { getCategoryParentChain } from "@/lib/category-api";
+import { MediaPreview } from "@/components/media-preview";
 import { resolveMediaUrl } from "@/lib/env";
 import { ListingCore, ListingDetail } from "@/lib/listing-api";
 import { listAllMeasurements } from "@/lib/measurement-api";
@@ -335,12 +336,7 @@ export function ListingProfileView({ listing }: { listing: ListingDetail }) {
                 const url = resolveMediaUrl(media.media_url);
                 return (
                   <div key={media.id} className={styles.mediaTile}>
-                    {media.media_type === "image" && url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={url} alt="" className={styles.mediaTilePreview} />
-                    ) : (
-                      <span className={styles.mediaTilePreview}>{media.media_type}</span>
-                    )}
+                    <MediaPreview type={media.media_type} url={url} />
                     <a
                       href={url ?? undefined}
                       target="_blank"

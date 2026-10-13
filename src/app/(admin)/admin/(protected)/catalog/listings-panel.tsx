@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RowThumbnail } from "@/components/thumbnail-control";
 import { BrandItem, listAllBrands } from "@/lib/brand-api";
-import { getCategoryParentChain } from "@/lib/category-api";
+import { CategoryTreeNode, getCategoryParentChain, getCategoryTree } from "@/lib/category-api";
 import {
   ListingBulkStatus,
   ListingListItem,
@@ -27,7 +27,15 @@ import {
   statusLabel,
   statusNeedsNote,
 } from "./listings/listing-utils";
+import { SellerFilterPicker } from "./listings/seller-filter-picker";
 import styles from "../management.module.css";
+
+function flatten(nodes: CategoryTreeNode[], depth = 0): { id: number; label: string }[] {
+  return nodes.flatMap((node) => [
+    { id: node.id, label: `${"  ".repeat(depth)}${node.name}` },
+    ...flatten(node.children, depth + 1),
+  ]);
+}
 
 const BULK_OPTIONS: { value: ListingBulkStatus; label: string }[] = [
   { value: "approved", label: "Approve" },
@@ -45,6 +53,8 @@ export function ListingsPanel({ initialStatus = "" }: { initialStatus?: ListingS
   const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
   const [listingTypeFilter, setListingTypeFilter] = useState("");
   const [brandFilter, setBrandFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [sellerFilter, setSellerFilter] = useState("");
   const [createdFrom, setCreatedFrom] = useState("");
   const [createdTo, setCreatedTo] = useState("");
   const [requestedFrom, setRequestedFrom] = useState("");
@@ -56,6 +66,8 @@ export function ListingsPanel({ initialStatus = "" }: { initialStatus?: ListingS
       status: statusFilter || undefined,
       listing_type: listingTypeFilter || undefined,
       brand: brandFilter || undefined,
+      category: categoryFilter || undefined,
+      seller: sellerFilter || undefined,
       created_from: createdFrom || undefined,
       created_to: createdTo || undefined,
       requested_from: requestedFrom || undefined,
@@ -63,6 +75,7 @@ export function ListingsPanel({ initialStatus = "" }: { initialStatus?: ListingS
     });
 
   const [brands, setBrands] = useState<BrandItem[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<{ id: number; label: string }[]>([]);
   const [categoryNames, setCategoryNames] = useState<Record<number, string>>({});
 
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -91,6 +104,9 @@ export function ListingsPanel({ initialStatus = "" }: { initialStatus?: ListingS
     listAllBrands()
       .then(setBrands)
       .catch(() => setBrands([]));
+    getCategoryTree({ type: "product" })
+      .then((tree) => setCategoryOptions(flatten(tree)))
+      .catch(() => setCategoryOptions([]));
   }, []);
 
   // Rows only carry a category id — resolve names for the visible page in one
@@ -258,6 +274,20 @@ export function ListingsPanel({ initialStatus = "" }: { initialStatus?: ListingS
               </option>
             ))}
           </select>
+          <select
+            className={styles.filterSelect}
+            aria-label="Filter by category"
+            value={categoryFilter}
+            onChange={(event) => setCategoryFilter(event.target.value)}
+          >
+            <option value="">All categories</option>
+            {categoryOptions.map((opt) => (
+              <option key={opt.id} value={opt.id}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <SellerFilterPicker value={sellerFilter} onChange={setSellerFilter} />
           <select
             className={styles.filterSelect}
             aria-label="Filter by brand"

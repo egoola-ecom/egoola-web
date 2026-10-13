@@ -207,6 +207,9 @@ export function ListingEditClient({
             upload: uploadThumbnail,
             remove: removeThumbnail,
             onFailure: fail,
+            confirmUpload: needsFixing(listing.status)
+              ? "This listing was rejected or sent back for changes. Changing its thumbnail sends it back to the admin for review. Continue?"
+              : undefined,
           }}
         />
       </div>

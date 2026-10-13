@@ -197,6 +197,9 @@ export function GigEditClient({
             upload: uploadThumbnail,
             remove: removeThumbnail,
             onFailure: fail,
+            confirmUpload: needsFixing(gig.status)
+              ? "This gig was rejected or sent back for changes. Changing its thumbnail sends it back to the admin for review. Continue?"
+              : undefined,
           }}
         />
       </div>
