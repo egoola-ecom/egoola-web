@@ -44,3 +44,58 @@
   color: var(--brand-muted);
   line-height: 1.5;
 }
+
+.interimNote {
+  margin-top: 0.75rem;
+  max-width: 40rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px dashed var(--brand-border);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--brand-muted);
+}
+
+.groupTitle {
+  margin-top: 1.75rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--brand-muted);
+}
+
+.statGrid {
+  margin-top: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 1rem;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: #fff;
+  border: 1px solid var(--brand-border);
+  border-radius: 8px;
+  padding: 1.1rem 1.3rem;
+}
+
+.stat:hover {
+  border-color: var(--brand-green);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.statValue {
+  font-size: 1.9rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  font-variant-numeric: tabular-nums;
+}
+
+.statLabel {
+  font-size: 0.84rem;
+  color: var(--brand-muted);
+  line-height: 1.4;
+}
