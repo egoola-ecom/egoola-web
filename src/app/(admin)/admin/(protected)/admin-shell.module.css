@@ -122,6 +122,17 @@
   font-size: 0.86rem;
 }
 
+/* A group inside a group (Listing > Product): less indent, so a badge still
+ * fits beside "Requested Products". */
+.navSub .navSub {
+  margin-left: 0.25rem;
+  padding-left: 0.25rem;
+}
+
+.navSub .navSub .navSubLink {
+  padding: 0.5rem 0.5rem;
+}
+
 /* Count next to "Seller Requests" (requests waiting for an admin). */
 .navCount {
   display: inline-block;

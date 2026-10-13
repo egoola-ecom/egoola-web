@@ -21,18 +21,27 @@ const PENDING_GIGS_HREF = "/admin/gigs/requests";
 /** Which waiting-count a menu entry shows as a badge. */
 type Badge = "sellerRequests" | "pendingListings" | "pendingGigs";
 
-interface NavChild {
+interface NavLeaf {
   href: string;
   label: string;
   badge?: Badge;
 }
 
-/** One menu entry. A group has no page of its own: it only opens its
- * children. `prefix` is the path the group's pages live under, so the group
- * stays open while one of them is shown. */
-type NavItem =
-  | { href: string; label: string; superAdminOnly?: boolean }
-  | { label: string; key: string; prefix: string; children: NavChild[] };
+/** A group has no page of its own: it only opens its children, which are
+ * links or groups again (Listing > Product > List). `prefixes` are the paths
+ * its pages live under, so the group stays open while one of them is shown. */
+interface NavGroup {
+  label: string;
+  key: string;
+  prefixes: string[];
+  children: (NavLeaf | NavGroup)[];
+}
+
+type NavItem = { href: string; label: string; superAdminOnly?: boolean } | NavGroup;
+
+function isGroup(item: NavLeaf | NavGroup | NavItem): item is NavGroup {
+  return "children" in item;
+}
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/admin/dashboard", label: "Dashboard" },
@@ -40,7 +49,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     label: "Sellers",
     key: "sellers",
-    prefix: SELLERS_HREF,
+    prefixes: [SELLERS_HREF],
     children: [
       { href: SELLER_REQUESTS_HREF, label: "Seller Requests", badge: "sellerRequests" },
       { href: SELLERS_HREF, label: "Seller List" },
@@ -50,21 +59,28 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/geography", label: "Geography" },
   { href: CATALOG_HREF, label: "Catalog" },
   {
-    label: "Listings",
-    key: "listings",
-    prefix: LISTINGS_HREF,
+    label: "Listing",
+    key: "listing",
+    prefixes: [LISTINGS_HREF, GIGS_HREF],
     children: [
-      { href: PENDING_LISTINGS_HREF, label: "Pending Listings", badge: "pendingListings" },
-      { href: LISTINGS_HREF, label: "All Listings" },
-    ],
-  },
-  {
-    label: "Gigs",
-    key: "gigs",
-    prefix: GIGS_HREF,
-    children: [
-      { href: PENDING_GIGS_HREF, label: "Pending Gigs", badge: "pendingGigs" },
-      { href: GIGS_HREF, label: "All Gigs" },
+      {
+        label: "Product",
+        key: "listing-product",
+        prefixes: [LISTINGS_HREF],
+        children: [
+          { href: LISTINGS_HREF, label: "List" },
+          { href: PENDING_LISTINGS_HREF, label: "Requested Products", badge: "pendingListings" },
+        ],
+      },
+      {
+        label: "Gig",
+        key: "listing-gig",
+        prefixes: [GIGS_HREF],
+        children: [
+          { href: GIGS_HREF, label: "Gigs List" },
+          { href: PENDING_GIGS_HREF, label: "Requested Gigs", badge: "pendingGigs" },
+        ],
+      },
     ],
   },
   { href: "/admin/cms", label: "CMS" },
@@ -72,7 +88,7 @@ const NAV_ITEMS: NavItem[] = [
 
 /** A parent entry must not light up while a sibling page that lives under its
  * path is open: "Seller List" vs Seller Requests, "Catalog" and "All Listings"
- * vs the listing pages and the pending list, "All Gigs" vs Pending Gigs. */
+ * vs the listing pages and the pending list, "Gigs List" vs Requested Gigs. */
 function isNavActive(pathname: string, href: string): boolean {
   if (href === SELLERS_HREF) {
     return pathname.startsWith(href) && !pathname.startsWith(SELLER_REQUESTS_HREF);
@@ -89,34 +105,51 @@ function isNavActive(pathname: string, href: string): boolean {
   return pathname.startsWith(href);
 }
 
+/** What is waiting inside a group (all levels): shown on its row while it is
+ * collapsed. */
+function waitingIn(group: NavGroup, counts: Record<Badge, number | null>): number {
+  return group.children.reduce(
+    (sum, child) =>
+      sum +
+      (isGroup(child)
+        ? waitingIn(child, counts)
+        : child.badge
+          ? (counts[child.badge] ?? 0)
+          : 0),
+    0,
+  );
+}
+
 function NavGroupView({
   item,
   pathname,
   counts,
-  open,
+  toggled,
   onToggle,
+  depth = 0,
 }: {
-  item: Extract<NavItem, { children: NavChild[] }>;
+  item: NavGroup;
   pathname: string;
   counts: Record<Badge, number | null>;
-  open: boolean;
-  onToggle: (open: boolean) => void;
+  /** The groups the admin opened or closed by hand; the rest follow the page. */
+  toggled: Record<string, boolean>;
+  onToggle: (key: string, open: boolean) => void;
+  depth?: number;
 }) {
-  const inGroup = pathname.startsWith(item.prefix);
-  // A collapsed group shows what is waiting inside it on its own row.
-  const waiting = item.children.reduce(
-    (sum, child) => sum + (child.badge ? (counts[child.badge] ?? 0) : 0),
-    0,
-  );
+  const inGroup = item.prefixes.some((prefix) => pathname.startsWith(prefix));
+  const open = toggled[item.key] ?? inGroup;
+  const waiting = waitingIn(item, counts);
   const panelId = `nav-${item.key}`;
   return (
     <div>
       <button
         type="button"
-        className={`${styles.navLink} ${styles.navGroup} ${inGroup ? styles.navGroupActive : ""}`}
+        className={`${styles.navLink} ${styles.navGroup} ${depth > 0 ? styles.navSubLink : ""} ${
+          inGroup ? styles.navGroupActive : ""
+        }`}
         aria-expanded={open}
         aria-controls={panelId}
-        onClick={() => onToggle(!open)}
+        onClick={() => onToggle(item.key, !open)}
       >
         <span>
           {item.label}
@@ -132,6 +165,19 @@ function NavGroupView({
       {open && (
         <div id={panelId} className={styles.navSub}>
           {item.children.map((child) => {
+            if (isGroup(child)) {
+              return (
+                <NavGroupView
+                  key={child.key}
+                  item={child}
+                  pathname={pathname}
+                  counts={counts}
+                  toggled={toggled}
+                  onToggle={onToggle}
+                  depth={depth + 1}
+                />
+              );
+            }
             const count = child.badge ? counts[child.badge] : null;
             return (
               <Link
@@ -190,14 +236,14 @@ export default function AdminProtectedLayout({
               !("superAdminOnly" in item && item.superAdminOnly) ||
               session.admin_type !== "admin",
           ).map((item) =>
-            "children" in item ? (
+            isGroup(item) ? (
               <NavGroupView
                 key={item.key}
                 item={item}
                 pathname={pathname}
                 counts={counts}
-                open={toggled[item.key] ?? pathname.startsWith(item.prefix)}
-                onToggle={(open) => setToggled({ ...toggled, [item.key]: open })}
+                toggled={toggled}
+                onToggle={(key, open) => setToggled({ ...toggled, [key]: open })}
               />
             ) : (
               <Link
