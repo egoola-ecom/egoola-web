@@ -1,0 +1,65 @@
+.page {
+  background: #f7f7f8;
+  min-height: calc(100vh - 3.5rem);
+  padding: 1.5rem 1rem 3rem;
+}
+
+.wrap {
+  max-width: 50rem;
+  margin: 0 auto;
+}
+
+/* The listing screens carry tables and the SKU editor. */
+.wrapWide {
+  max-width: 70rem;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--brand-border);
+}
+
+.tab {
+  padding: 0.6rem 1rem;
+  margin-bottom: -1px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #555;
+  border-bottom: 2px solid transparent;
+}
+
+.tab:hover {
+  color: #1a1a1a;
+}
+
+.tabActive {
+  color: var(--brand-green-dark);
+  border-bottom-color: var(--brand-green);
+}
+
+.state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40vh;
+  padding: 1rem;
+  text-align: center;
+  color: var(--brand-muted);
+}
+
+.pageTitle {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 0.35rem;
+}
+
+.pageText {
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: #555;
+  margin-bottom: 1.25rem;
+}
