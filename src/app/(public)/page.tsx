@@ -144,7 +144,7 @@ export default function PublicHomePage() {
               freelance services to thousands of customers.
             </p>
           </div>
-          <Link href="/login" className={styles.sellerBannerButton}>
+          <Link href="/seller/register" className={styles.sellerBannerButton}>
             Become a Seller
           </Link>
         </div>

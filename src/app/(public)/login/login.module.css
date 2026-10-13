@@ -156,6 +156,12 @@
   box-shadow: 0 0 0 3px rgba(44, 208, 131, 0.15);
 }
 
+.fieldHint {
+  margin-top: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--brand-muted);
+}
+
 .passwordWrap {
   position: relative;
 }

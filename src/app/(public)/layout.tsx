@@ -41,7 +41,7 @@ export default function PublicLayout({
             <Link href="/login" className={styles.loginLink}>
               Login
             </Link>
-            <Link href="/login" className={styles.sellButton}>
+            <Link href="/seller/register" className={styles.sellButton}>
               Become a Seller
             </Link>
           </nav>

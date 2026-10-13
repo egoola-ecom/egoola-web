@@ -3,7 +3,12 @@ import styles from "./login.module.css";
 
 export const metadata = { title: "Login" };
 
-export default function LoginPage() {
+export default async function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ role?: string }>;
+}) {
+  const { role } = await searchParams;
   return (
     <div className={styles.page}>
       <div className={styles.promo}>
@@ -20,7 +25,7 @@ export default function LoginPage() {
       </div>
 
       <div className={styles.cardWrap}>
-        <LoginForm />
+        <LoginForm initialRole={role === "seller" ? "seller" : "buyer"} />
       </div>
     </div>
   );
