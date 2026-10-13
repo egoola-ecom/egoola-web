@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { listAdmins, listBuyers, listSellers } from "@/lib/accounts-api";
 import { getSession } from "@/lib/auth";
 import { listBanners } from "@/lib/cms-api";
+import { listGigs } from "@/lib/gig-api";
 import { listListings } from "@/lib/listing-api";
 import styles from "./dashboard.module.css";
 
@@ -46,22 +47,35 @@ const ATTENTION: Stat[] = [
   },
   {
     key: "listings-pending",
-    label: "Listings waiting for moderation",
+    label: "Product listings waiting for moderation",
     href: "/admin/catalog/listings/requests",
     load: countOf(listListings, { status: "pending" }),
   },
   {
     key: "listings-changes",
-    label: "Listings with changes requested",
+    label: "Product listings with changes requested",
     href: "/admin/catalog/listings?status=changes_requested",
     load: countOf(listListings, { status: "changes_requested" }),
+  },
+  {
+    key: "gigs-pending",
+    label: "Gigs waiting for moderation",
+    href: "/admin/gigs/requests",
+    load: countOf(listGigs, { status: "pending" }),
+  },
+  {
+    key: "gigs-changes",
+    label: "Gigs with changes requested",
+    href: "/admin/gigs?status=changes_requested",
+    load: countOf(listGigs, { status: "changes_requested" }),
   },
 ];
 
 const TOTALS: Stat[] = [
   { key: "buyers", label: "Buyers", href: "/admin/buyers", load: countOf(listBuyers) },
   { key: "sellers", label: "Sellers", href: "/admin/sellers", load: countOf(listSellers) },
-  { key: "listings", label: "Listings", href: "/admin/catalog/listings", load: countOf(listListings) },
+  { key: "listings", label: "Product listings", href: "/admin/catalog/listings", load: countOf(listListings) },
+  { key: "gigs", label: "Gigs", href: "/admin/gigs", load: countOf(listGigs) },
   {
     key: "banners",
     label: "Banners live now",

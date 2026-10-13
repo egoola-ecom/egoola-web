@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { logout } from "@/lib/auth";
+import { usePendingGigCount } from "@/lib/pending-gig-count";
 import { usePendingListingCount } from "@/lib/pending-listing-count";
 import { useSellerRequestCount } from "@/lib/seller-request-count";
 import { useAuthGuard } from "@/lib/use-auth-guard";
@@ -14,9 +15,11 @@ const SELLERS_HREF = "/admin/sellers";
 const CATALOG_HREF = "/admin/catalog";
 const LISTINGS_HREF = "/admin/catalog/listings";
 const PENDING_LISTINGS_HREF = "/admin/catalog/listings/requests";
+const GIGS_HREF = "/admin/gigs";
+const PENDING_GIGS_HREF = "/admin/gigs/requests";
 
 /** Which waiting-count a menu entry shows as a badge. */
-type Badge = "sellerRequests" | "pendingListings";
+type Badge = "sellerRequests" | "pendingListings" | "pendingGigs";
 
 interface NavChild {
   href: string;
@@ -55,12 +58,21 @@ const NAV_ITEMS: NavItem[] = [
       { href: LISTINGS_HREF, label: "All Listings" },
     ],
   },
+  {
+    label: "Gigs",
+    key: "gigs",
+    prefix: GIGS_HREF,
+    children: [
+      { href: PENDING_GIGS_HREF, label: "Pending Gigs", badge: "pendingGigs" },
+      { href: GIGS_HREF, label: "All Gigs" },
+    ],
+  },
   { href: "/admin/cms", label: "CMS" },
 ];
 
 /** A parent entry must not light up while a sibling page that lives under its
  * path is open: "Seller List" vs Seller Requests, "Catalog" and "All Listings"
- * vs the listing pages and the pending list. */
+ * vs the listing pages and the pending list, "All Gigs" vs Pending Gigs. */
 function isNavActive(pathname: string, href: string): boolean {
   if (href === SELLERS_HREF) {
     return pathname.startsWith(href) && !pathname.startsWith(SELLER_REQUESTS_HREF);
@@ -70,6 +82,9 @@ function isNavActive(pathname: string, href: string): boolean {
   }
   if (href === LISTINGS_HREF) {
     return pathname.startsWith(href) && !pathname.startsWith(PENDING_LISTINGS_HREF);
+  }
+  if (href === GIGS_HREF) {
+    return pathname.startsWith(href) && !pathname.startsWith(PENDING_GIGS_HREF);
   }
   return pathname.startsWith(href);
 }
@@ -147,6 +162,7 @@ export default function AdminProtectedLayout({
   const counts: Record<Badge, number | null> = {
     sellerRequests: useSellerRequestCount(ready),
     pendingListings: usePendingListingCount(ready),
+    pendingGigs: usePendingGigCount(ready),
   };
   // A group follows the page: it is open while one of its pages is shown.
   // Once the admin clicks it, their choice wins.

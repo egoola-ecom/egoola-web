@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getBuyer, getSeller, listBuyers, listSellers } from "@/lib/accounts-api";
+import { getSeller, listSellers } from "@/lib/accounts-api";
 import styles from "../../management.module.css";
 
-export type ListingOwnerKind = "none" | "seller" | "buyer";
+export type ListingOwnerKind = "none" | "seller";
 
 interface OwnerOption {
   id: number;
@@ -18,18 +18,20 @@ interface ResolvedOwner {
   name: string;
 }
 
-/** Optional owner of a listing: nobody (an Admin-owned listing), a seller (a
- * seller offer) or a buyer (a job request) — never both, which the backend
- * also enforces. Searches the seller/buyer lists by name as the admin types
- * and shows who is currently picked. */
+/** Optional owner of a product listing or a gig: nobody (an Admin-owned
+ * entry) or a seller. (A buyer owns only a job request, which is not made
+ * here.) Searches the seller list by name as the admin types and shows who is
+ * currently picked. */
 export function ListingOwnerPicker({
   kind,
   ownerId,
   onChange,
+  noneLabel = "No owner (admin listing)",
 }: {
   kind: ListingOwnerKind;
   ownerId: number | null;
   onChange: (kind: ListingOwnerKind, ownerId: number | null) => void;
+  noneLabel?: string;
 }) {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -47,8 +49,7 @@ export function ListingOwnerPicker({
     let cancelled = false;
     const params = new URLSearchParams({ limit: "10" });
     if (debouncedQuery) params.set("search", debouncedQuery);
-    const request = kind === "seller" ? listSellers(params) : listBuyers(params);
-    request
+    listSellers(params)
       .then((res) => {
         if (!cancelled) setOptions(res.results.map(({ id, name, email }) => ({ id, name, email })));
       })
@@ -65,8 +66,7 @@ export function ListingOwnerPicker({
   useEffect(() => {
     if (kind === "none" || ownerId == null) return;
     let cancelled = false;
-    const request = kind === "seller" ? getSeller(ownerId) : getBuyer(ownerId);
-    request
+    getSeller(ownerId)
       .then((owner) => {
         if (!cancelled) setResolved({ kind, id: ownerId, name: owner.name });
       })
@@ -93,9 +93,8 @@ export function ListingOwnerPicker({
       <div className={styles.ownerKindRow}>
         {(
           [
-            ["none", "No owner (admin listing)"],
+            ["none", noneLabel],
             ["seller", "Seller"],
-            ["buyer", "Buyer"],
           ] as const
         ).map(([value, text]) => (
           <label key={value}>

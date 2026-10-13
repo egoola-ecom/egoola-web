@@ -1,7 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { ListingDetail, ListingStatus, ListingStatusInput } from "@/lib/listing-api";
+import {
+  ListingStatus,
+  ListingStatusChangeLog,
+  ListingStatusInput,
+} from "@/lib/listing-api";
 import { FieldErrors } from "@/lib/use-managed-list";
 import {
   formatDateTime,
@@ -17,6 +21,13 @@ const DECISIONS: { status: ListingStatus; label: string; className: string }[] =
   { status: "rejected", label: "Reject", className: styles.dangerButton },
 ];
 
+/** What the panel needs: a listing or a gig has the same moderation fields. */
+export interface ModerationSubject {
+  status: ListingStatus;
+  note: string | null;
+  status_change_logs: ListingStatusChangeLog[];
+}
+
 /** Listing Details section for moderation: approve, request changes or reject
  * (the last two need a note), see the current note, and read the full status
  * history, newest first. Mirrors the backend's PATCH `status` / `note` flow and
@@ -29,8 +40,11 @@ export function ListingModerationPanel({
   formError,
   submitting,
   onSubmit,
+  noun = "listing",
 }: {
-  listing: ListingDetail;
+  listing: ModerationSubject;
+  /** What it is called in the messages: "listing" or "gig". */
+  noun?: string;
   fieldErrors: FieldErrors;
   formError: string | null;
   submitting: boolean;
@@ -45,7 +59,7 @@ export function ListingModerationPanel({
     if (statusNeedsNote(status) && !trimmed) {
       setLocalError(
         status === "rejected"
-          ? "Write a note explaining why this listing is rejected."
+          ? `Write a note explaining why this ${noun} is rejected.`
           : "Write a note telling the owner what to change.",
       );
       return;
@@ -91,7 +105,7 @@ export function ListingModerationPanel({
           <p className={styles.fieldError}>{fieldErrors.note?.[0] ?? fieldErrors.status?.[0]}</p>
         )}
         <p className={styles.fieldHint}>
-          The note is saved with the status change. Choosing the status the listing already has
+          The note is saved with the status change. Choosing the status the {noun} already has
           changes nothing.
         </p>
       </div>
@@ -112,7 +126,7 @@ export function ListingModerationPanel({
         <span className={styles.secondaryText}>or move back to</span>
         <select
           className={styles.filterSelect}
-          aria-label="Move this listing back to"
+          aria-label={`Move this ${noun} back to`}
           value={otherStatus}
           disabled={submitting}
           onChange={(event) => {
