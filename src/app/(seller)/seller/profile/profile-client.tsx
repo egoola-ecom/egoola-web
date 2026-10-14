@@ -78,8 +78,8 @@ function ProfileDetails({
     publicGeographyLoaders,
   );
   const [name, setName] = useState(me.name);
-  const [presentAddress, setPresentAddress] = useState(me.present_address);
-  const [permanentAddress, setPermanentAddress] = useState(me.permanent_address);
+  const [presentAddress, setPresentAddress] = useState(me.present_address ?? "");
+  const [permanentAddress, setPermanentAddress] = useState(me.permanent_address ?? "");
   const [skills, setSkills] = useState((me.skills ?? []).join(", "));
   const [interest, setInterest] = useState((me.interest ?? []).join(", "));
   const [education, setEducation] = useState<EducationEntry[]>(me.education ?? []);
@@ -110,11 +110,11 @@ function ProfileDetails({
 
     const nextPresent = presentAddress.trim();
     if (!nextPresent) problems.present_address = ["Present address cannot be blank."];
-    else if (nextPresent !== me.present_address) patch.present_address = nextPresent;
+    else if (nextPresent !== (me.present_address ?? "")) patch.present_address = nextPresent;
 
     const nextPermanent = permanentAddress.trim();
     if (!nextPermanent) problems.permanent_address = ["Permanent address cannot be blank."];
-    else if (nextPermanent !== me.permanent_address) patch.permanent_address = nextPermanent;
+    else if (nextPermanent !== (me.permanent_address ?? "")) patch.permanent_address = nextPermanent;
 
     if (!geo.countryId) problems.country = ["Choose your country."];
     if (!geo.stateId) problems.state = ["Choose your state."];
