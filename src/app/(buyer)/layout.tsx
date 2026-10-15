@@ -1,25 +1,16 @@
-"use client";
+import { Merienda } from "next/font/google";
+import "@/styles/shop.css";
+import "@/styles/shop-extra.css";
+import { ShopShell } from "@/components/shop/shop-shell";
 
-import { ActorTopbar } from "@/components/actor-topbar";
-import { useAuthGuard } from "@/lib/use-auth-guard";
+const merienda = Merienda({ variable: "--font-merienda", subsets: ["latin"], weight: ["700"] });
 
-export default function BuyerLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
-  const { session, checked } = useAuthGuard("buyer", "/login");
-
-  if (!checked || !session) {
-    return (
-      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--brand-muted)" }}>
-        Checking session…
-      </div>
-    );
-  }
-
+/** The Buyer Web frame. Every route here starts with /buyer. The legacy CSS is
+ * scoped under `.eg-shop`, so the admin and seller panels are not affected. */
+export default function BuyerLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <div>
-      <ActorTopbar session={session} actorType="buyer" loginPath="/login" />
-      <main style={{ padding: "1.75rem" }}>{children}</main>
+    <div className={`eg-shop ${merienda.variable}`}>
+      <ShopShell>{children}</ShopShell>
     </div>
   );
 }
