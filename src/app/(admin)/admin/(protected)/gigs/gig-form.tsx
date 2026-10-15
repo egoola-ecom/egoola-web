@@ -2,19 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ThumbnailControl } from "@/components/thumbnail-control";
-import { MediaPreview } from "@/components/media-preview";
-import { resolveMediaUrl } from "@/lib/env";
+import {
+  EMPTY_STAGED_FILES,
+  ListingFilesControl,
+  StagedFiles,
+} from "@/components/listing-files-control";
 import { GigDetail, GigInput } from "@/lib/gig-api";
 import { publicGeographyLoaders } from "@/lib/geography-api";
 import { ListingStatus } from "@/lib/listing-api";
-import {
-  LISTING_MEDIA_ACCEPT,
-  LISTING_MEDIA_MAX_BYTES,
-  LISTING_MEDIA_MAX_PER_LISTING,
-  LISTING_MEDIA_MAX_PER_REQUEST,
-  LISTING_MEDIA_TYPES,
-} from "@/lib/seller-listing-api";
 import { useGeographySelection } from "@/lib/use-geography-selection";
 import { FieldErrors } from "@/lib/use-managed-list";
 import { fromLocalInput, toLocalInput } from "../_shared/datetime";
@@ -25,7 +20,6 @@ import {
   ListingOwnerKind,
   ListingOwnerPicker,
 } from "../catalog/listings/listing-owner-picker";
-import { ListingThumbnailHandlers } from "../catalog/listings/listing-form";
 import { LISTING_STATUS_OPTIONS, statusNeedsNote } from "../catalog/listings/listing-utils";
 import { PackagesEditor } from "./packages-editor";
 import {
@@ -39,13 +33,12 @@ import {
 import styles from "../management.module.css";
 
 /** What the form hands to its parent: the JSON body (the whole gig on create,
- * only what changed on edit) plus gallery media changes and the picked
- * thumbnail, which the parent saves in their own requests. */
+ * only what changed on edit), plus (create only) the files picked before the
+ * first save. Files have their own API: the parent sends them with `addFiles`
+ * once the gig exists. */
 export interface GigFormValues {
   input: Partial<GigInput>;
   files: File[];
-  deleteIds: number[];
-  /** Create only: uploaded right after the gig exists (its own endpoint). */
   thumbnail: File | null;
 }
 
@@ -114,7 +107,6 @@ export function GigForm({
   submitting,
   onCancel,
   onSubmit,
-  thumbnail,
 }: {
   mode: "create" | "edit";
   /** "seller" is the seller panel's form: no owner, status or currency, the
@@ -127,8 +119,6 @@ export function GigForm({
   submitting: boolean;
   onCancel: () => void;
   onSubmit: (values: GigFormValues) => void;
-  /** Edit mode: lets the thumbnail control save at once. */
-  thumbnail?: ListingThumbnailHandlers;
 }) {
   const isSeller = variant === "seller";
   const sendsForReview =
@@ -150,11 +140,9 @@ export function GigForm({
   const [problems, setProblems] = useState<PackageProblems | null>(null);
   const [initialStatus, setInitialStatus] = useState<ListingStatus | "">("");
   const [statusNote, setStatusNote] = useState("");
-  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
-  const [newFiles, setNewFiles] = useState<File[]>([]);
-  const [deleteIds, setDeleteIds] = useState<Set<number>>(new Set());
+  // Create only: the files picked before the gig exists.
+  const [stagedFiles, setStagedFiles] = useState<StagedFiles>(EMPTY_STAGED_FILES);
   const [localError, setLocalError] = useState<string | null>(null);
-  const [mediaMessage, setMediaMessage] = useState<string | null>(null);
 
   const geo = useGeographySelection(
     {
@@ -166,61 +154,12 @@ export function GigForm({
     isSeller ? publicGeographyLoaders : undefined,
   );
 
-  const keptMediaCount = (initial?.media ?? []).filter((m) => !deleteIds.has(m.id)).length;
-
-  /** Adds picked files. For a seller the server's media limits are checked
-   * here too (type, 10 MB each, 10 per save, 20 per gig); an admin has none. */
-  function addFiles(picked: File[]) {
-    setMediaMessage(null);
-    if (picked.length === 0) return;
-    if (!isSeller) {
-      setNewFiles((prev) => [...prev, ...picked]);
-      return;
-    }
-    const problems: string[] = [];
-    const accepted: File[] = [];
-    for (const file of picked) {
-      if (!LISTING_MEDIA_TYPES.includes(file.type)) {
-        problems.push(`${file.name}: only JPG, PNG, WEBP, GIF, MP4 or PDF files are accepted.`);
-      } else if (file.size > LISTING_MEDIA_MAX_BYTES) {
-        problems.push(`${file.name}: files can be up to 10 MB.`);
-      } else if (newFiles.length + accepted.length >= LISTING_MEDIA_MAX_PER_REQUEST) {
-        problems.push(`${file.name}: you can add up to ${LISTING_MEDIA_MAX_PER_REQUEST} files at a time.`);
-      } else if (keptMediaCount + newFiles.length + accepted.length >= LISTING_MEDIA_MAX_PER_LISTING) {
-        problems.push(`${file.name}: a gig can have up to ${LISTING_MEDIA_MAX_PER_LISTING} files.`);
-      } else {
-        accepted.push(file);
-      }
-    }
-    if (accepted.length > 0) setNewFiles((prev) => [...prev, ...accepted]);
-    if (problems.length > 0) setMediaMessage(problems.join(" "));
-  }
-
-  function toggleDelete(id: number) {
-    setDeleteIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLocalError(null);
 
     if (categoryId == null) {
       setLocalError("Pick a service category for this gig.");
-      return;
-    }
-    if (
-      isSeller &&
-      (newFiles.length > LISTING_MEDIA_MAX_PER_REQUEST ||
-        keptMediaCount + newFiles.length > LISTING_MEDIA_MAX_PER_LISTING)
-    ) {
-      setLocalError(
-        `A gig can have up to ${LISTING_MEDIA_MAX_PER_LISTING} files, and you can add ${LISTING_MEDIA_MAX_PER_REQUEST} at a time. Remove some files first.`,
-      );
       return;
     }
     if (!isSeller && ownerKind === "seller" && ownerId == null) {
@@ -331,9 +270,8 @@ export function GigForm({
 
     onSubmit({
       input,
-      files: newFiles,
-      deleteIds: Array.from(deleteIds),
-      thumbnail: mode === "create" ? thumbnailFile : null,
+      files: mode === "create" ? stagedFiles.media : [],
+      thumbnail: mode === "create" ? stagedFiles.thumbnail : null,
     });
   }
 
@@ -582,105 +520,21 @@ export function GigForm({
           {err("thana")}
         </div>
 
-        <p className={styles.sectionDivider}>Thumbnail</p>
-        <div className={styles.formGridFull}>
-          {mode === "create" ? (
-            <ThumbnailControl
-              mode="staged"
-              imageUrl={null}
-              actorType={isSeller ? "seller" : "admin"}
-              loginPath={isSeller ? "/login" : "/admin/login"}
-              file={thumbnailFile}
-              onFileChange={setThumbnailFile}
-              disabled={submitting}
-            />
-          ) : thumbnail ? (
-            <ThumbnailControl
-              mode="live"
-              imageUrl={initial?.image_url ?? null}
-              actorType={thumbnail.actorType}
-              loginPath={thumbnail.loginPath}
-              onUpload={thumbnail.upload}
-              onRemove={thumbnail.remove}
-              onFailure={thumbnail.onFailure}
-              confirmUpload={thumbnail.confirmUpload}
-              disabled={submitting}
-            />
-          ) : null}
-          {err("image")}
-        </div>
-
-        <p className={styles.sectionDivider}>Gallery</p>
-        {initial && initial.media.length > 0 && (
-          <div className={styles.mediaGrid}>
-            {initial.media.map((media) => {
-              const url = resolveMediaUrl(media.media_url);
-              const removing = deleteIds.has(media.id);
-              return (
-                <div
-                  key={media.id}
-                  className={`${styles.mediaTile} ${removing ? styles.mediaTileRemoving : ""}`}
-                >
-                  <MediaPreview type={media.media_type} url={url} />
-                  <button
-                    type="button"
-                    className={styles.mediaRemoveToggle}
-                    style={{ marginLeft: 0, textAlign: "left" }}
-                    onClick={() => toggleDelete(media.id)}
-                  >
-                    {removing ? "Undo remove" : "Remove"}
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        <div className={`${styles.field} ${styles.formGridFull}`}>
-          <label className={styles.fileButton} style={{ alignSelf: "flex-start" }}>
-            Add images / files
-            <input
-              id="gig-media-files"
-              type="file"
-              multiple
-              accept={isSeller ? LISTING_MEDIA_ACCEPT : "image/*,video/*,application/pdf"}
-              style={{ display: "none" }}
-              onChange={(event) => {
-                addFiles(Array.from(event.target.files ?? []));
-                event.target.value = "";
-              }}
-            />
-          </label>
-          {newFiles.length > 0 && (
-            <div className={styles.mediaList}>
-              {newFiles.map((file, index) => (
-                <div key={`${file.name}-${index}`} className={styles.mediaRow}>
-                  <span className={styles.mediaLabel} style={{ textTransform: "none" }}>
-                    {file.name}
-                  </span>
-                  <button
-                    type="button"
-                    className={styles.mediaRemoveToggle}
-                    onClick={() => setNewFiles((prev) => prev.filter((_, i) => i !== index))}
-                  >
-                    Remove
-                  </button>
-                </div>
-              ))}
+        {mode === "create" && (
+          <>
+            <p className={styles.sectionDivider}>Thumbnail and gallery</p>
+            <div className={styles.formGridFull}>
+              <ListingFilesControl
+                mode="staged"
+                scope={isSeller ? "seller" : "admin"}
+                loginPath={isSeller ? "/login" : "/admin/login"}
+                value={stagedFiles}
+                onChange={setStagedFiles}
+                disabled={submitting}
+              />
             </div>
-          )}
-          {isSeller && (
-            <p className={styles.fieldHint}>
-              JPG, PNG, WEBP, GIF, MP4 or PDF. Up to 10 MB each, {LISTING_MEDIA_MAX_PER_REQUEST} at a
-              time and {LISTING_MEDIA_MAX_PER_LISTING} per gig. A removed file is deleted for good.
-            </p>
-          )}
-          {mediaMessage && <p className={styles.fieldError}>{mediaMessage}</p>}
-          {fieldErrors.media_file?.map((message, i) => (
-            <p key={i} className={styles.fieldError}>
-              {message}
-            </p>
-          ))}
-        </div>
+          </>
+        )}
 
         {mode === "create" && !isSeller && (
           <>
