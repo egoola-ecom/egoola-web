@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createListing, putListingThumbnail, syncListingMedia } from "@/lib/listing-api";
+import { createListing } from "@/lib/listing-api";
+import { addFiles, filesErrorReason } from "@/lib/listing-files-api";
 import { notifyPendingListingsChanged } from "@/lib/pending-listing-count";
 import { AuthError, clearSession } from "@/lib/auth";
 import { FieldErrors, parseFieldErrors } from "@/lib/use-managed-list";
@@ -24,29 +25,20 @@ export function ListingCreateClient() {
     setSubmitting(true);
     setFieldErrors({});
     setFormError(null);
-    let createdId: number | null = null;
     try {
       const created = await createListing(input);
-      createdId = created.id;
       // A product created as "pending" joins the pending list: refresh the badge.
       notifyPendingListingsChanged();
-      // Media travels as multipart, which can't carry the nested price
-      // tiers, so it is uploaded in a second request.
-      if (files.length > 0) await syncListingMedia(created.id, files, []);
-      // The thumbnail has its own endpoint: it can only go up once the listing
-      // exists. If it fails the listing is kept (no rollback) and the admin
-      // lands on the edit page with the reason, to try the picture again.
-      if (thumbnail) {
+      // Files have their own API, so they go up once the listing exists. If
+      // that fails the listing is kept (no rollback) and the admin lands on
+      // the edit page with the reason, to try again.
+      if (files.length > 0 || thumbnail) {
         try {
-          await putListingThumbnail(created.id, thumbnail);
-        } catch (thumbnailErr) {
-          if (thumbnailErr instanceof AuthError) throw thumbnailErr;
-          const reason =
-            parseFieldErrors(thumbnailErr).fieldErrors.image?.[0] ??
-            parseFieldErrors(thumbnailErr).message ??
-            "The picture could not be uploaded.";
+          await addFiles("admin", created.id, { thumbnail, media: files });
+        } catch (filesErr) {
+          if (filesErr instanceof AuthError) throw filesErr;
           router.push(
-            `/admin/catalog/listings/${created.id}/edit?thumbnailError=${encodeURIComponent(reason)}`,
+            `/admin/catalog/listings/${created.id}/edit?filesError=${encodeURIComponent(filesErrorReason(filesErr))}`,
           );
           return;
         }
@@ -56,15 +48,6 @@ export function ListingCreateClient() {
       if (err instanceof AuthError) {
         clearSession("admin");
         router.replace("/admin/login");
-        return;
-      }
-      if (createdId != null) {
-        // The listing exists; only its media failed. Send the admin to the
-        // edit page to retry rather than risking a duplicate listing here.
-        window.alert(
-          "The listing was created, but its media upload failed. You can add media from the Update page.",
-        );
-        router.push(`/admin/catalog/listings/${createdId}/edit`);
         return;
       }
       const { fieldErrors: fe, message } = parseFieldErrors(err);
