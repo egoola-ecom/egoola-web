@@ -2,14 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ThumbnailControl } from "@/components/thumbnail-control";
+import { ListingFilesControl } from "@/components/listing-files-control";
 import {
   ListingDetail,
   ListingStatusInput,
   deleteListing,
-  deleteListingThumbnail,
   getListing,
-  putListingThumbnail,
   updateListingStatus,
 } from "@/lib/listing-api";
 import { apiErrorDetail } from "@/lib/api";
@@ -104,9 +102,9 @@ export function ListingDetailClient({
     }
   }
 
-  /** After a thumbnail change the content change log has a new row: load the
+  /** After a files change the content change log has a new row: load the
    * listing again so it shows. The status never changes for an admin. */
-  async function refreshAfterThumbnail() {
+  async function refreshAfterFiles() {
     try {
       setListing(await getListing(id));
     } catch (err) {
@@ -213,15 +211,15 @@ export function ListingDetailClient({
       />
 
       <div className={styles.detailCard}>
-        <h2 className={styles.detailCardTitle}>Thumbnail</h2>
-        <ThumbnailControl
+        <h2 className={styles.detailCardTitle}>Thumbnail and gallery</h2>
+        <ListingFilesControl
           mode="live"
-          imageUrl={listing.image_url}
-          actorType="admin"
+          scope="admin"
           loginPath="/admin/login"
-          onUpload={(file) => putListingThumbnail(id, file)}
-          onRemove={() => deleteListingThumbnail(id)}
-          onChanged={() => void refreshAfterThumbnail()}
+          listingId={id}
+          imageUrl={listing.image_url}
+          media={listing.media}
+          onSaved={() => void refreshAfterFiles()}
         />
       </div>
 
