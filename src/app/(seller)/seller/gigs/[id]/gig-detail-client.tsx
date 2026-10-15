@@ -4,13 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import management from "@/app/(admin)/admin/(protected)/management.module.css";
 import { RateDisplay } from "@/app/(admin)/admin/(protected)/gigs/gig-utils";
-import { ThumbnailControl } from "@/components/thumbnail-control";
+import { ListingFilesControl } from "@/components/listing-files-control";
 import { ApiError } from "@/lib/api";
 import {
   SellerGigDetail,
-  deleteSellerGigThumbnail,
   getSellerGig,
-  putSellerGigThumbnail,
 } from "@/lib/seller-gig-api";
 import shell from "../../../seller-shell.module.css";
 import { SellerStatusChip, needsFixing, useListingFailure } from "../../listings/listing-status";
@@ -154,23 +152,21 @@ export function GigDetailClient({ id, notice }: { id: number; notice: string | n
       {notice && NOTICES[notice] && <p className={management.noticeBanner}>{NOTICES[notice]}</p>}
       <StatusBanner gig={gig} />
       <div className={management.detailCard}>
-        <h2 className={management.detailCardTitle}>Thumbnail</h2>
-        <ThumbnailControl
+        <h2 className={management.detailCardTitle}>Thumbnail and gallery</h2>
+        <ListingFilesControl
           mode="live"
-          imageUrl={gig.image_url}
-          actorType="seller"
+          scope="seller"
           loginPath="/login"
-          onUpload={(file) => putSellerGigThumbnail(id, file)}
-          onRemove={() => deleteSellerGigThumbnail(id)}
+          listingId={id}
+          imageUrl={gig.image_url}
+          media={gig.media}
           onFailure={fail}
-          confirmUpload={needsFixing(gig.status) ? "This gig was rejected or sent back for changes. Changing its thumbnail sends it back to the admin for review. Continue?" : undefined}
-          onChanged={() => void refresh()}
+          onSaved={() => void refresh()}
         />
-        {needsFixing(gig.status) && (
-          <p className={management.fieldHint}>
-            Changing the thumbnail sends this gig back to the admin for review.
-          </p>
-        )}
+        <p className={management.fieldHint}>
+          Changing files does not change the review status. Only saving the gig itself sends it
+          back for review.
+        </p>
       </div>
       <SellerGigView gig={gig} />
       <StatusTimeline listing={gig} />
