@@ -7,9 +7,9 @@ export default async function GigEditPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ thumbnailError?: string }>;
+  searchParams: Promise<{ filesError?: string }>;
 }) {
   const { id } = await params;
-  const { thumbnailError } = await searchParams;
-  return <GigEditClient id={Number(id)} initialThumbnailError={thumbnailError ?? null} />;
+  const { filesError } = await searchParams;
+  return <GigEditClient id={Number(id)} initialFilesError={filesError ?? null} />;
 }

@@ -6,12 +6,10 @@ import { AuthError, clearSession } from "@/lib/auth";
 import { describeLoadError } from "@/lib/load-error";
 import {
   GigDetail,
-  deleteGigThumbnail,
   getGig,
-  putGigThumbnail,
-  syncGigMedia,
   updateGig,
 } from "@/lib/gig-api";
+import { ListingFilesControl } from "@/components/listing-files-control";
 import { notifyPendingGigsChanged } from "@/lib/pending-gig-count";
 import { FieldErrors, parseFieldErrors } from "@/lib/use-managed-list";
 import { GigForm, GigFormValues } from "../../gig-form";
@@ -23,11 +21,11 @@ import styles from "../../../management.module.css";
  * editable here; moderation lives on the details page. */
 export function GigEditClient({
   id,
-  initialThumbnailError = null,
+  initialFilesError = null,
 }: {
   id: number;
-  /** Set when the gig was just created but its thumbnail upload failed. */
-  initialThumbnailError?: string | null;
+  /** Set when the gig was just created but its files were not uploaded. */
+  initialFilesError?: string | null;
 }) {
   const router = useRouter();
   const [gig, setGig] = useState<GigDetail | null>(null);
@@ -73,7 +71,7 @@ export function GigEditClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  async function handleSubmit({ input, files, deleteIds }: GigFormValues) {
+  async function handleSubmit({ input }: GigFormValues) {
     setSubmitting(true);
     setFieldErrors({});
     setFormError(null);
@@ -81,11 +79,6 @@ export function GigEditClient({
       if (Object.keys(input).length > 0) {
         await updateGig(id, input);
         notifyPendingGigsChanged();
-      }
-      // Media can't ride along with the packages, so it is saved in its own
-      // multipart request.
-      if (files.length > 0 || deleteIds.length > 0) {
-        await syncGigMedia(id, files, deleteIds);
       }
       router.push(`/admin/gigs/${id}`);
     } catch (err) {
@@ -125,23 +118,36 @@ export function GigEditClient({
         </div>
       </div>
 
-      {initialThumbnailError && (
+      {initialFilesError && (
         <p className={styles.errorBanner}>
-          The gig was created, but its thumbnail was not uploaded: {initialThumbnailError} Choose
-          the picture again below.
+          The gig was created, but its files were not uploaded: {initialFilesError} Add them again
+          in the Files card below.
         </p>
       )}
+
+      <div className={styles.detailCard} style={{ marginBottom: "1rem" }}>
+        <p className={styles.sectionDivider}>Files</p>
+        <ListingFilesControl
+          mode="live"
+          scope="admin"
+          loginPath="/admin/login"
+          listingId={id}
+          imageUrl={gig.image_url}
+          media={gig.media}
+          onSaved={(result) =>
+            setGig((prev) =>
+              prev
+                ? { ...prev, image_path: result.image_path, image_url: result.image_url, media: result.media }
+                : prev,
+            )
+          }
+        />
+      </div>
 
       <div className={styles.detailCard}>
         <GigForm
           mode="edit"
           initial={gig}
-          thumbnail={{
-            actorType: "admin",
-            loginPath: "/admin/login",
-            upload: (file) => putGigThumbnail(id, file),
-            remove: () => deleteGigThumbnail(id),
-          }}
           fieldErrors={fieldErrors}
           formError={formError}
           submitting={submitting}
