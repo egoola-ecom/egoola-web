@@ -11,12 +11,10 @@ import {
 import { ApiError } from "@/lib/api";
 import {
   SellerListingDetail,
-  deleteSellerListingThumbnail,
   getSellerListing,
-  putSellerListingThumbnail,
-  syncSellerListingMedia,
   updateSellerListing,
 } from "@/lib/seller-listing-api";
+import { ListingFilesControl } from "@/components/listing-files-control";
 import { FieldErrors, parseFieldErrors } from "@/lib/use-managed-list";
 import shell from "../../../../seller-shell.module.css";
 import { sellerChanges, toSellerInput } from "../../listing-payload";
@@ -29,18 +27,15 @@ import { SellerStatusChip, needsFixing, useListingFailure } from "../../listing-
  *    button. */
 export function ListingEditClient({
   id,
-  initialMediaError,
-  initialThumbnailError,
+  initialFilesError,
 }: {
   id: number;
-  initialMediaError: string | null;
-  /** Set when the product was just created but its thumbnail upload failed. */
-  initialThumbnailError: string | null;
+  /** Set when the product was just created but its files were not uploaded. */
+  initialFilesError: string | null;
 }) {
   const router = useRouter();
   const fail = useListingFailure();
   const [listing, setListing] = useState<SellerListingDetail | null>(null);
-  const [formVersion, setFormVersion] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -48,11 +43,9 @@ export function ListingEditClient({
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(
-    initialMediaError
-      ? `The listing was created, but its files were not uploaded: ${initialMediaError} Add them again below.`
-      : initialThumbnailError
-        ? `The listing was created, but its thumbnail was not uploaded: ${initialThumbnailError} Choose the picture again below.`
-        : null,
+    initialFilesError
+      ? `The listing was created, but its files were not uploaded: ${initialFilesError} Add them again in the Files card below.`
+      : null,
   );
 
   const load = useCallback(async () => {
@@ -80,25 +73,19 @@ export function ListingEditClient({
     void load().finally(() => setLoading(false));
   }, [load]);
 
-  async function handleSubmit({ input, files, deleteIds }: ListingFormValues) {
+  async function handleSubmit({ input }: ListingFormValues) {
     if (!listing) return;
     setSubmitting(true);
     setFieldErrors({});
     setFormError(null);
     setNotice(null);
     const resubmits = needsFixing(listing.status);
-    let saved = false;
     try {
       const changes = sellerChanges(toSellerInput(input), listing);
       // A rejected / changes-requested listing is resubmitted by ANY save,
       // even one with nothing in it; other statuses only save real changes.
       if (Object.keys(changes).length > 0 || resubmits) {
         await updateSellerListing(id, changes);
-        saved = true;
-      }
-      if (files.length > 0 || deleteIds.length > 0) {
-        await syncSellerListingMedia(id, files, deleteIds);
-        saved = true;
       }
       router.push(`/seller/listings/${id}?notice=${resubmits ? "resubmitted" : "saved"}`);
     } catch (err) {
@@ -107,42 +94,10 @@ export function ListingEditClient({
       const parsed = parseFieldErrors(err);
       setFieldErrors(parsed.fieldErrors);
       setFormError(parsed.message ?? (Object.keys(parsed.fieldErrors).length === 0 ? message : null));
-      if (saved) {
-        // The text changes were saved; only the files failed. Show the saved
-        // listing (fresh URLs) with the reason, so nothing is saved twice.
-        setNotice("Your changes were saved, but the files were not uploaded. Add them again.");
-        await load();
-        setFormVersion((v) => v + 1);
-      }
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setSubmitting(false);
     }
-  }
-
-  /** The thumbnail saves at once. The answer carries the listing's status: a
-   * rejected / changes-requested product goes back to pending when its picture
-   * changes. Only that is updated here, so unsaved text in the form stays. */
-  async function uploadThumbnail(file: File) {
-    const result = await putSellerListingThumbnail(id, file);
-    setListing((current) =>
-      current
-        ? {
-            ...current,
-            image_path: result.image_path,
-            image_url: result.image_url,
-            status: result.status,
-          }
-        : current,
-    );
-    return result;
-  }
-
-  async function removeThumbnail() {
-    await deleteSellerListingThumbnail(id);
-    setListing((current) =>
-      current ? { ...current, image_path: null, image_url: null } : current,
-    );
   }
 
   if (loading) return <p className={management.stateRow}>Loading…</p>;
@@ -190,9 +145,39 @@ export function ListingEditClient({
       )}
       {notice && <p className={management.noticeBanner}>{notice}</p>}
 
+      <div className={management.detailCard} style={{ marginBottom: "1rem" }}>
+        <h2 className={management.detailCardTitle}>Files</h2>
+        <ListingFilesControl
+          mode="live"
+          scope="seller"
+          loginPath="/login"
+          listingId={id}
+          imageUrl={listing.image_url}
+          media={listing.media}
+          onFailure={fail}
+          onSaved={(result) =>
+            setListing((current) =>
+              current
+                ? {
+                    ...current,
+                    image_path: result.image_path,
+                    image_url: result.image_url,
+                    media: result.media,
+                    status: result.status,
+                  }
+                : current,
+            )
+          }
+        />
+        <p className={management.fieldHint}>
+          Files are saved on their own and do not change the review status. Only saving the form
+          below sends a rejected listing back for review.
+        </p>
+      </div>
+
       <div className={management.detailCard}>
         <ListingForm
-          key={`${listing.updated_at}-${formVersion}`}
+          key={listing.updated_at}
           mode="edit"
           variant="seller"
           initial={listing}
@@ -201,16 +186,6 @@ export function ListingEditClient({
           submitting={submitting}
           onCancel={() => router.push(`/seller/listings/${id}`)}
           onSubmit={handleSubmit}
-          thumbnail={{
-            actorType: "seller",
-            loginPath: "/login",
-            upload: uploadThumbnail,
-            remove: removeThumbnail,
-            onFailure: fail,
-            confirmUpload: needsFixing(listing.status)
-              ? "This listing was rejected or sent back for changes. Changing its thumbnail sends it back to the admin for review. Continue?"
-              : undefined,
-          }}
         />
       </div>
     </div>
