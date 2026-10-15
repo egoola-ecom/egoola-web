@@ -1,18 +1,7 @@
-import Link from "next/link";
+import { HomeScreen } from "@/components/shop/home-screen";
 
-export const metadata = { title: "Buyer Dashboard" };
+export const metadata = { title: "Egoola.com — Sells & Service Marketplace in Bangladesh" };
 
-export default function BuyerDashboardPage() {
-  return (
-    <div>
-      <h1>Buyer Dashboard</h1>
-      <p>
-        Buyer-only pages live under the <code>/buyer</code> route group: orders,
-        cart, checkout, messaging, reviews, and profile.
-      </p>
-      <p>
-        <Link href="/">Back home</Link>
-      </p>
-    </div>
-  );
+export default function BuyerHomePage() {
+  return <HomeScreen />;
 }
