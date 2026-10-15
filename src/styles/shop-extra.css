@@ -1,0 +1,18 @@
+/* Small additions to the scoped legacy CSS (shop.css). The legacy page relied on a
+   class that a browser extension adds to <body> for the bottom padding on small
+   screens, so it is set here on the wrapper instead. */
+.eg-shop {
+  min-height: 100vh;
+}
+
+@media (max-width: 991px) {
+  .eg-shop {
+    padding-bottom: 70px;
+  }
+}
+
+/* Replaces Bootstrap's dropdown / collapse JavaScript: the legacy markup is kept,
+   React toggles the `show` class. */
+.eg-shop .dropdown-menu.show {
+  display: block;
+}
