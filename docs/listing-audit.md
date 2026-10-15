@@ -1,10 +1,12 @@
 # Listings / Gigs audit (Admin and Seller panels)
 
-Source checklist: `egoola-server/docs/frontend-listing-audit-prompt.md`. Evidence is `file:line` in `egoola-web` (`A:` = `src/app/(admin)/admin/(protected)/`, `S:` = `src/app/(seller)/`). **Before** = status found in Phase 1 (no code changed); **After** = status once Phase 2 fixes are in. A row is Done only with evidence; anything not checked would be Missing.
+Source checklist: `egoola-server/docs/prompt/frontend-listing-audit-prompt.md`. Evidence is `file:line` in `egoola-web` (`A:` = `src/app/(admin)/admin/(protected)/`, `S:` = `src/app/(seller)/`). **Before** = status found in Phase 1 (no code changed); **After** = status once Phase 2 fixes are in. A row is Done only with evidence; anything not checked would be Missing.
 
 **Before:** Done 65, Partial 14  
 **After:** Done 78, Partial 1
 
+
+Sections 6 and 7 (and rows P14 and the matrix cases about thumbnails and media) were superseded by the files change of 2026-10-15: see `docs/listing-files-tests.md`.
 
 ## 1. Structure and kinds
 
@@ -80,6 +82,8 @@ Source checklist: `egoola-server/docs/frontend-listing-audit-prompt.md`. Evidenc
 
 ## 6. Thumbnail
 
+> **Superseded on 2026-10-15.** The backend moved the thumbnail and the gallery to their own multipart API (`/catalog/listing-files/{id}/` and `/seller/listing-files/{id}/`); listing and gig create / update are JSON only and the old `.../thumbnail/` calls are gone. The rows below describe the earlier code (`thumbnail-control.tsx`, `PUT` / `DELETE` thumbnail, media in the listing `PATCH`, the review confirmation on a thumbnail change). The current code and its test record are in `docs/listing-files-tests.md`.
+
 | ID | Before | After | Evidence | Note |
 |---|---|---|---|---|
 | T1 | Done | Done | `src/lib/listing-api.ts:152`<br>`src/lib/gig-api.ts:245`<br>`src/lib/seller-listing-api.ts:166`<br>`src/lib/seller-gig-api.ts:83` |  |
@@ -90,6 +94,8 @@ Source checklist: `egoola-server/docs/frontend-listing-audit-prompt.md`. Evidenc
 | T6 | Done | Done | `A:catalog/listings/listing-change-history.tsx:45`<br>`A:catalog/listings/listing-change-history.tsx:361` |  |
 
 ## 7. Gallery media
+
+> **Superseded on 2026-10-15.** The backend moved the thumbnail and the gallery to their own multipart API (`/catalog/listing-files/{id}/` and `/seller/listing-files/{id}/`); listing and gig create / update are JSON only and the old `.../thumbnail/` calls are gone. The rows below describe the earlier code (`thumbnail-control.tsx`, `PUT` / `DELETE` thumbnail, media in the listing `PATCH`, the review confirmation on a thumbnail change). The current code and its test record are in `docs/listing-files-tests.md`.
 
 | ID | Before | After | Evidence | Note |
 |---|---|---|---|---|
