@@ -4,12 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ListingDetail,
-  deleteListingThumbnail,
   getListing,
-  putListingThumbnail,
-  syncListingMedia,
   updateListing,
 } from "@/lib/listing-api";
+import { ListingFilesControl } from "@/components/listing-files-control";
 import { AuthError, clearSession } from "@/lib/auth";
 import { describeLoadError } from "@/lib/load-error";
 import { FieldErrors, parseFieldErrors } from "@/lib/use-managed-list";
@@ -23,11 +21,11 @@ import styles from "../../../../management.module.css";
  * page. */
 export function ListingEditClient({
   id,
-  initialThumbnailError = null,
+  initialFilesError = null,
 }: {
   id: number;
-  /** Set when the listing was just created but its thumbnail upload failed. */
-  initialThumbnailError?: string | null;
+  /** Set when the listing was just created but its files were not uploaded. */
+  initialFilesError?: string | null;
 }) {
   const router = useRouter();
   const [listing, setListing] = useState<ListingDetail | null>(null);
@@ -73,7 +71,7 @@ export function ListingEditClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  async function handleSubmit({ input, files, deleteIds }: ListingFormValues) {
+  async function handleSubmit({ input }: ListingFormValues) {
     setSubmitting(true);
     setFieldErrors({});
     setFormError(null);
@@ -85,11 +83,6 @@ export function ListingEditClient({
       delete changes.catalog_type;
       delete changes.posted_by_role;
       if (Object.keys(changes).length > 0) await updateListing(id, changes);
-      // Media can't ride along with the nested price tiers, so it is saved
-      // in its own multipart request.
-      if (files.length > 0 || deleteIds.length > 0) {
-        await syncListingMedia(id, files, deleteIds);
-      }
       router.push(`/admin/catalog/listings/${id}`);
     } catch (err) {
       if (!handleAuthError(err)) {
@@ -127,23 +120,36 @@ export function ListingEditClient({
         </div>
       </div>
 
-      {initialThumbnailError && (
+      {initialFilesError && (
         <p className={styles.errorBanner}>
-          The listing was created, but its thumbnail was not uploaded: {initialThumbnailError} Choose
-          the picture again below.
+          The listing was created, but its files were not uploaded: {initialFilesError} Add them
+          again in the Files card below.
         </p>
       )}
+
+      <div className={styles.detailCard} style={{ marginBottom: "1rem" }}>
+        <p className={styles.sectionDivider}>Files</p>
+        <ListingFilesControl
+          mode="live"
+          scope="admin"
+          loginPath="/admin/login"
+          listingId={id}
+          imageUrl={listing.image_url}
+          media={listing.media}
+          onSaved={(result) =>
+            setListing((prev) =>
+              prev
+                ? { ...prev, image_path: result.image_path, image_url: result.image_url, media: result.media }
+                : prev,
+            )
+          }
+        />
+      </div>
 
       <div className={styles.detailCard}>
         <ListingForm
           mode="edit"
           initial={listing}
-          thumbnail={{
-            actorType: "admin",
-            loginPath: "/admin/login",
-            upload: (file) => putListingThumbnail(id, file),
-            remove: () => deleteListingThumbnail(id),
-          }}
           fieldErrors={fieldErrors}
           formError={formError}
           submitting={submitting}

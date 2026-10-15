@@ -7,9 +7,9 @@ export default async function ListingEditPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ thumbnailError?: string }>;
+  searchParams: Promise<{ filesError?: string }>;
 }) {
   const { id } = await params;
-  const { thumbnailError } = await searchParams;
-  return <ListingEditClient id={Number(id)} initialThumbnailError={thumbnailError ?? null} />;
+  const { filesError } = await searchParams;
+  return <ListingEditClient id={Number(id)} initialFilesError={filesError ?? null} />;
 }
