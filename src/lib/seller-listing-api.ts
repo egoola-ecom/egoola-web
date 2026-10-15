@@ -6,7 +6,6 @@ import type {
   ListingInput,
   ListingListItem,
   ListingStatus,
-  ThumbnailResult,
 } from "./listing-api";
 
 // ---------------------------------------------------------------------------
@@ -16,8 +15,9 @@ import type {
 //   - Always the seller's own, never anybody else's (404).
 //   - A new listing is always `pending`. A seller never sends seller, buyer,
 //     posted_by_role, status or requested_at.
-//   - The cover picture (thumbnail, `image_url`) has its own endpoint:
-//     PUT / DELETE `{id}/thumbnail/`. It is NOT part of create or PATCH.
+//   - Create and update are JSON only (multipart is 415). The thumbnail and the
+//     gallery have their own API (listing-files-api.ts) and never change the
+//     status: only saving the listing itself resubmits it.
 //   - Products only: a service offer is a gig (`/seller/gigs/`) and a service
 //     sent here is a 400.
 //   - Price and stock live on SKUs. Create may use the price shortcut OR
@@ -105,21 +105,6 @@ export type SellerListingInput = Omit<
   sku?: string;
 };
 
-/** Media limits (server-checked too): JPG, PNG, WEBP, GIF, MP4 or PDF; 10 MB
- * each; at most 10 files per request and 20 per listing. */
-export const LISTING_MEDIA_MAX_BYTES = 10 * 1024 * 1024;
-export const LISTING_MEDIA_MAX_PER_REQUEST = 10;
-export const LISTING_MEDIA_MAX_PER_LISTING = 20;
-export const LISTING_MEDIA_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "video/mp4",
-  "application/pdf",
-];
-export const LISTING_MEDIA_ACCEPT = ".jpg,.jpeg,.png,.webp,.gif,.mp4,.pdf";
-
 const LISTINGS_PATH = "/seller/listings/";
 const LOOKUPS_PATH = "/seller/lookups/";
 
@@ -143,37 +128,6 @@ export function updateSellerListing(id: number, input: Partial<SellerListingInpu
     method: "PATCH",
     body: JSON.stringify(input),
   });
-}
-
-/** Adds and/or removes pictures and files in one multipart PATCH. Kept apart
- * from the JSON save because the nested `skus` / `price_tiers` do not survive
- * multipart. Removed files are deleted from storage at once, so always use the
- * URLs from this answer. */
-export function syncSellerListingMedia(id: number, files: File[], deleteIds: number[]) {
-  const formData = new FormData();
-  for (const file of files) formData.append("media_file", file);
-  for (const mediaId of deleteIds) formData.append("media_delete_ids", String(mediaId));
-  return authFetch<SellerListingDetail>("seller", `${LISTINGS_PATH}${id}/`, {
-    method: "PATCH",
-    body: formData,
-  });
-}
-
-/** Sets or replaces the thumbnail of one of the seller's products (JPG, PNG
- * or WEBP, up to 10 MB). On a rejected / changes-requested listing this also
- * sends it back to `pending`, like any other save; the answer carries the
- * listing's status so the screen can say so. */
-export function putSellerListingThumbnail(id: number, file: File) {
-  const formData = new FormData();
-  formData.append("image", file);
-  return authFetch<ThumbnailResult>("seller", `${LISTINGS_PATH}${id}/thumbnail/`, {
-    method: "PUT",
-    body: formData,
-  });
-}
-
-export function deleteSellerListingThumbnail(id: number) {
-  return authFetch<void>("seller", `${LISTINGS_PATH}${id}/thumbnail/`, { method: "DELETE" });
 }
 
 /** Lookup lists are small: one call (limit up to 1000) fills a dropdown. This
