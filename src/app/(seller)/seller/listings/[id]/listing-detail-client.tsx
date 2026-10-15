@@ -4,13 +4,11 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import management from "@/app/(admin)/admin/(protected)/management.module.css";
 import { listingTypeLabel } from "@/app/(admin)/admin/(protected)/catalog/listings/listing-utils";
-import { ThumbnailControl } from "@/components/thumbnail-control";
+import { ListingFilesControl } from "@/components/listing-files-control";
 import { ApiError } from "@/lib/api";
 import {
   SellerListingDetail,
-  deleteSellerListingThumbnail,
   getSellerListing,
-  putSellerListingThumbnail,
 } from "@/lib/seller-listing-api";
 import shell from "../../../seller-shell.module.css";
 import { SellerStatusChip, needsFixing, useListingFailure } from "../listing-status";
@@ -144,23 +142,21 @@ export function ListingDetailClient({ id, notice }: { id: number; notice: string
       {notice && NOTICES[notice] && <p className={management.noticeBanner}>{NOTICES[notice]}</p>}
       <StatusBanner listing={listing} />
       <div className={management.detailCard}>
-        <h2 className={management.detailCardTitle}>Thumbnail</h2>
-        <ThumbnailControl
+        <h2 className={management.detailCardTitle}>Thumbnail and gallery</h2>
+        <ListingFilesControl
           mode="live"
-          imageUrl={listing.image_url}
-          actorType="seller"
+          scope="seller"
           loginPath="/login"
-          onUpload={(file) => putSellerListingThumbnail(id, file)}
-          onRemove={() => deleteSellerListingThumbnail(id)}
+          listingId={id}
+          imageUrl={listing.image_url}
+          media={listing.media}
           onFailure={fail}
-          confirmUpload={needsFixing(listing.status) ? "This listing was rejected or sent back for changes. Changing its thumbnail sends it back to the admin for review. Continue?" : undefined}
-          onChanged={() => void refresh()}
+          onSaved={() => void refresh()}
         />
-        {needsFixing(listing.status) && (
-          <p className={management.fieldHint}>
-            Changing the thumbnail sends this listing back to the admin for review.
-          </p>
-        )}
+        <p className={management.fieldHint}>
+          Changing files does not change the review status. Only saving the listing itself sends
+          it back for review.
+        </p>
       </div>
       <SellerListingView listing={listing} />
       <StatusTimeline listing={listing} />
