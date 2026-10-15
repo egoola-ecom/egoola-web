@@ -8,11 +8,9 @@ import {
   ListingForm,
   ListingFormValues,
 } from "@/app/(admin)/admin/(protected)/catalog/listings/listing-form";
-import {
-  createSellerListing,
-  putSellerListingThumbnail,
-  syncSellerListingMedia,
-} from "@/lib/seller-listing-api";
+import { createSellerListing } from "@/lib/seller-listing-api";
+import { ApiError } from "@/lib/api";
+import { addFiles, filesErrorReason } from "@/lib/listing-files-api";
 import { FieldErrors, parseFieldErrors } from "@/lib/use-managed-list";
 import shell from "../../../seller-shell.module.css";
 import { toSellerInput } from "../listing-payload";
@@ -20,8 +18,7 @@ import { useListingFailure } from "../listing-status";
 
 /** Create product. One form for the six product formats (a service offer is a
  * gig). The listing is always saved as pending and is the seller's own;
- * pictures go in a second request because multipart cannot carry the nested
- * SKUs and price tiers, and the thumbnail in a third (its own endpoint). */
+ * files go up afterwards with the files API (the listing itself is JSON only). */
 export function ListingCreateClient() {
   const router = useRouter();
   const fail = useListingFailure();
@@ -33,37 +30,26 @@ export function ListingCreateClient() {
     setSubmitting(true);
     setFieldErrors({});
     setFormError(null);
-    let createdId: number | null = null;
     try {
       const created = await createSellerListing(toSellerInput(input));
-      createdId = created.id;
-      if (files.length > 0) await syncSellerListingMedia(created.id, files, []);
-      if (thumbnail) {
+      // Files have their own API, so they go up once the listing exists. If that
+      // fails the listing is kept: stay on its edit page with the reason, so the
+      // seller can retry without creating a second listing.
+      if (files.length > 0 || thumbnail) {
         try {
-          await putSellerListingThumbnail(created.id, thumbnail);
-        } catch (thumbnailErr) {
-          // The listing exists: stay on its edit page with the reason, so the
-          // seller can retry the picture without creating a second listing.
+          await addFiles("seller", created.id, { thumbnail, media: files });
+        } catch (filesErr) {
           const reason =
-            parseFieldErrors(thumbnailErr).fieldErrors.image?.[0] ?? fail(thumbnailErr);
+            filesErr instanceof ApiError && filesErr.status === 400
+              ? filesErrorReason(filesErr)
+              : fail(filesErr);
           if (reason == null) return;
-          router.push(
-            `/seller/listings/${created.id}/edit?thumbnailError=${encodeURIComponent(reason)}`,
-          );
+          router.push(`/seller/listings/${created.id}/edit?filesError=${encodeURIComponent(reason)}`);
           return;
         }
       }
       router.push(`/seller/listings/${created.id}?notice=created`);
     } catch (err) {
-      if (createdId != null) {
-        // The listing exists; only its files failed. Go to its edit page to
-        // add them again rather than risk a duplicate (the same title is
-        // refused anyway).
-        const { fieldErrors: fe, message } = parseFieldErrors(err);
-        const reason = fe.media_file?.join(" ") ?? message ?? "The files could not be uploaded.";
-        router.push(`/seller/listings/${createdId}/edit?mediaError=${encodeURIComponent(reason)}`);
-        return;
-      }
       const message = fail(err);
       if (message == null) return;
       const parsed = parseFieldErrors(err);
