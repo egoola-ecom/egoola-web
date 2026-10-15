@@ -1,7 +1,6 @@
 import type { PaginatedResponse } from "./accounts-api";
 import { authFetch } from "./auth";
 import type { GigDetail, GigInput, GigListItem } from "./gig-api";
-import type { ThumbnailResult } from "./listing-api";
 import type { SellerListingStatusLog } from "./seller-listing-api";
 
 // ---------------------------------------------------------------------------
@@ -16,7 +15,8 @@ import type { SellerListingStatusLog } from "./seller-listing-api";
 //     duration); on an edit `skus` merges by `id`, packages are only hidden.
 //   - Saving is resubmitting: pending stays pending, approved stays approved,
 //     rejected / changes_requested goes back to pending. No Resubmit button.
-//   - No DELETE (405). The thumbnail has its own endpoint.
+//   - No DELETE (405). Create and update are JSON only; the thumbnail and the
+//     gallery have their own API (listing-files-api.ts) and never change the status.
 // ---------------------------------------------------------------------------
 
 /** A row of "My gigs": the admin's row plus the review note and update time. */
@@ -64,31 +64,4 @@ export function updateSellerGig(id: number, input: Partial<SellerGigInput>) {
     method: "PATCH",
     body: JSON.stringify(input),
   });
-}
-
-/** Adds and/or removes gallery files in one multipart PATCH (kept apart from
- * the JSON save, which carries the packages). */
-export function syncSellerGigMedia(id: number, files: File[], deleteIds: number[]) {
-  const formData = new FormData();
-  for (const file of files) formData.append("media_file", file);
-  for (const mediaId of deleteIds) formData.append("media_delete_ids", String(mediaId));
-  return authFetch<SellerGigDetail>("seller", `${GIGS_PATH}${id}/`, {
-    method: "PATCH",
-    body: formData,
-  });
-}
-
-/** Sets or replaces the thumbnail (JPG, PNG or WEBP, up to 10 MB). On a
- * rejected / changes-requested gig this also sends it back to `pending`. */
-export function putSellerGigThumbnail(id: number, file: File) {
-  const formData = new FormData();
-  formData.append("image", file);
-  return authFetch<ThumbnailResult>("seller", `${GIGS_PATH}${id}/thumbnail/`, {
-    method: "PUT",
-    body: formData,
-  });
-}
-
-export function deleteSellerGigThumbnail(id: number) {
-  return authFetch<void>("seller", `${GIGS_PATH}${id}/thumbnail/`, { method: "DELETE" });
 }
