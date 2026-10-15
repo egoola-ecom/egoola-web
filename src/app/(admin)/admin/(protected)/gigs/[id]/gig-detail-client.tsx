@@ -2,16 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ThumbnailControl } from "@/components/thumbnail-control";
+import { ListingFilesControl } from "@/components/listing-files-control";
 import { apiErrorDetail } from "@/lib/api";
 import { AuthError, clearSession } from "@/lib/auth";
 import { describeLoadError } from "@/lib/load-error";
 import {
   GigDetail,
   deleteGig,
-  deleteGigThumbnail,
   getGig,
-  putGigThumbnail,
   updateGigStatus,
 } from "@/lib/gig-api";
 import { ListingStatusInput } from "@/lib/listing-api";
@@ -100,9 +98,9 @@ export function GigDetailClient({
     }
   }
 
-  /** After a thumbnail change the content change log has a new row: load the
+  /** After a files change the content change log has a new row: load the
    * gig again so it shows. The status never changes for an admin. */
-  async function refreshAfterThumbnail() {
+  async function refreshAfterFiles() {
     try {
       setGig(await getGig(id));
     } catch (err) {
@@ -202,15 +200,15 @@ export function GigDetailClient({
       />
 
       <div className={styles.detailCard}>
-        <h2 className={styles.detailCardTitle}>Thumbnail</h2>
-        <ThumbnailControl
+        <h2 className={styles.detailCardTitle}>Thumbnail and gallery</h2>
+        <ListingFilesControl
           mode="live"
-          imageUrl={gig.image_url}
-          actorType="admin"
+          scope="admin"
           loginPath="/admin/login"
-          onUpload={(file) => putGigThumbnail(id, file)}
-          onRemove={() => deleteGigThumbnail(id)}
-          onChanged={() => void refreshAfterThumbnail()}
+          listingId={id}
+          imageUrl={gig.image_url}
+          media={gig.media}
+          onSaved={() => void refreshAfterFiles()}
         />
       </div>
 
