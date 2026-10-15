@@ -9,7 +9,6 @@ import type {
   ListingStatus,
   ListingStatusChangeLog,
   ListingStatusInput,
-  ThumbnailResult,
 } from "./listing-api";
 
 // ---------------------------------------------------------------------------
@@ -35,7 +34,7 @@ import type {
 //     listing_type, attributes, min_order_qty or price tiers (400).
 //   - Status changes go through the same PATCH; `note` is required for
 //     rejected / changes_requested. The thumbnail (`image_path` / `image_url`)
-//     is read only here and has its own endpoint.
+//     and the gallery are read only here (listing-files-api.ts changes them).
 //   - Delete is a soft delete (204).
 // ---------------------------------------------------------------------------
 
@@ -214,18 +213,6 @@ export function updateGigStatus(id: number, input: ListingStatusInput) {
   return updateGig(id, input);
 }
 
-/** Adds and/or removes gallery media in one multipart PATCH (kept apart from
- * the JSON save, which carries the packages). */
-export function syncGigMedia(id: number, files: File[], deleteIds: number[]) {
-  const formData = new FormData();
-  for (const file of files) formData.append("media_file", file);
-  for (const mediaId of deleteIds) formData.append("media_delete_ids", String(mediaId));
-  return authFetch<GigDetail>("admin", `${GIGS_PATH}${id}/`, {
-    method: "PATCH",
-    body: formData,
-  });
-}
-
 export function deleteGig(id: number) {
   return authFetch<void>("admin", `${GIGS_PATH}${id}/`, { method: "DELETE" });
 }
@@ -239,18 +226,4 @@ export function bulkModerateGigs(input: {
     method: "POST",
     body: JSON.stringify(input),
   });
-}
-
-/** Sets or replaces the thumbnail (JPG, PNG or WEBP, up to 10 MB). */
-export function putGigThumbnail(id: number, file: File) {
-  const formData = new FormData();
-  formData.append("image", file);
-  return authFetch<ThumbnailResult>("admin", `${GIGS_PATH}${id}/thumbnail/`, {
-    method: "PUT",
-    body: formData,
-  });
-}
-
-export function deleteGigThumbnail(id: number) {
-  return authFetch<void>("admin", `${GIGS_PATH}${id}/thumbnail/`, { method: "DELETE" });
 }
