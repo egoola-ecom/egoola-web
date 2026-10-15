@@ -12,12 +12,10 @@ import { ApiError } from "@/lib/api";
 import {
   SellerGigDetail,
   SellerGigInput,
-  deleteSellerGigThumbnail,
   getSellerGig,
-  putSellerGigThumbnail,
-  syncSellerGigMedia,
   updateSellerGig,
 } from "@/lib/seller-gig-api";
+import { ListingFilesControl } from "@/components/listing-files-control";
 import { FieldErrors, parseFieldErrors } from "@/lib/use-managed-list";
 import shell from "../../../../seller-shell.module.css";
 import { SellerStatusChip, needsFixing, useListingFailure } from "../../../listings/listing-status";
@@ -28,18 +26,15 @@ import { SellerStatusChip, needsFixing, useListingFailure } from "../../../listi
  * resubmitting, so there is no separate button. */
 export function GigEditClient({
   id,
-  initialMediaError,
-  initialThumbnailError,
+  initialFilesError,
 }: {
   id: number;
-  initialMediaError: string | null;
-  /** Set when the gig was just created but its thumbnail upload failed. */
-  initialThumbnailError: string | null;
+  /** Set when the gig was just created but its files were not uploaded. */
+  initialFilesError: string | null;
 }) {
   const router = useRouter();
   const fail = useListingFailure();
   const [gig, setGig] = useState<SellerGigDetail | null>(null);
-  const [formVersion, setFormVersion] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -47,11 +42,9 @@ export function GigEditClient({
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(
-    initialMediaError
-      ? `The gig was created, but its files were not uploaded: ${initialMediaError} Add them again below.`
-      : initialThumbnailError
-        ? `The gig was created, but its thumbnail was not uploaded: ${initialThumbnailError} Choose the picture again below.`
-        : null,
+    initialFilesError
+      ? `The gig was created, but its files were not uploaded: ${initialFilesError} Add them again in the Files card below.`
+      : null,
   );
 
   const load = useCallback(async () => {
@@ -78,24 +71,18 @@ export function GigEditClient({
     void load().finally(() => setLoading(false));
   }, [load]);
 
-  async function handleSubmit({ input, files, deleteIds }: GigFormValues) {
+  async function handleSubmit({ input }: GigFormValues) {
     if (!gig) return;
     setSubmitting(true);
     setFieldErrors({});
     setFormError(null);
     setNotice(null);
     const resubmits = needsFixing(gig.status);
-    let saved = false;
     try {
       // A rejected / changes-requested gig is resubmitted by ANY save, even
       // one with nothing in it; other statuses only save real changes.
       if (Object.keys(input).length > 0 || resubmits) {
         await updateSellerGig(id, input as Partial<SellerGigInput>);
-        saved = true;
-      }
-      if (files.length > 0 || deleteIds.length > 0) {
-        await syncSellerGigMedia(id, files, deleteIds);
-        saved = true;
       }
       router.push(`/seller/gigs/${id}?notice=${resubmits ? "resubmitted" : "saved"}`);
     } catch (err) {
@@ -104,35 +91,10 @@ export function GigEditClient({
       const parsed = parseFieldErrors(err);
       setFieldErrors(parsed.fieldErrors);
       setFormError(parsed.message ?? (Object.keys(parsed.fieldErrors).length === 0 ? message : null));
-      if (saved) {
-        // The text changes were saved; only the files failed. Show the saved
-        // gig (fresh URLs) with the reason, so nothing is saved twice.
-        setNotice("Your changes were saved, but the files were not uploaded. Add them again.");
-        await load();
-        setFormVersion((v) => v + 1);
-      }
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setSubmitting(false);
     }
-  }
-
-  /** The thumbnail saves at once. The answer carries the gig's status: a
-   * rejected / changes-requested gig goes back to pending when its picture
-   * changes. Only that is updated here, so unsaved text in the form stays. */
-  async function uploadThumbnail(file: File) {
-    const result = await putSellerGigThumbnail(id, file);
-    setGig((current) =>
-      current
-        ? { ...current, image_path: result.image_path, image_url: result.image_url, status: result.status }
-        : current,
-    );
-    return result;
-  }
-
-  async function removeThumbnail() {
-    await deleteSellerGigThumbnail(id);
-    setGig((current) => (current ? { ...current, image_path: null, image_url: null } : current));
   }
 
   if (loading) return <p className={management.stateRow}>Loading…</p>;
@@ -180,9 +142,39 @@ export function GigEditClient({
       )}
       {notice && <p className={management.noticeBanner}>{notice}</p>}
 
+      <div className={management.detailCard} style={{ marginBottom: "1rem" }}>
+        <h2 className={management.detailCardTitle}>Files</h2>
+        <ListingFilesControl
+          mode="live"
+          scope="seller"
+          loginPath="/login"
+          listingId={id}
+          imageUrl={gig.image_url}
+          media={gig.media}
+          onFailure={fail}
+          onSaved={(result) =>
+            setGig((current) =>
+              current
+                ? {
+                    ...current,
+                    image_path: result.image_path,
+                    image_url: result.image_url,
+                    media: result.media,
+                    status: result.status,
+                  }
+                : current,
+            )
+          }
+        />
+        <p className={management.fieldHint}>
+          Files are saved on their own and do not change the review status. Only saving the form
+          below sends a rejected gig back for review.
+        </p>
+      </div>
+
       <div className={management.detailCard}>
         <GigForm
-          key={`${gig.updated_at}-${formVersion}`}
+          key={gig.updated_at}
           mode="edit"
           variant="seller"
           initial={gig}
@@ -191,16 +183,6 @@ export function GigEditClient({
           submitting={submitting}
           onCancel={() => router.push(`/seller/gigs/${id}`)}
           onSubmit={handleSubmit}
-          thumbnail={{
-            actorType: "seller",
-            loginPath: "/login",
-            upload: uploadThumbnail,
-            remove: removeThumbnail,
-            onFailure: fail,
-            confirmUpload: needsFixing(gig.status)
-              ? "This gig was rejected or sent back for changes. Changing its thumbnail sends it back to the admin for review. Continue?"
-              : undefined,
-          }}
         />
       </div>
     </div>
