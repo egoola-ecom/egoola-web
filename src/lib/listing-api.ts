@@ -20,14 +20,14 @@ import { CursorResponse, PaginatedResponse } from "./accounts-api";
 //     rejected / changes_requested. Every change writes one append-only row to
 //     `status_change_logs` (newest first on the detail response only).
 //   - `price_tiers`, when sent, replaces the whole tier list.
-//   - Media is multipart (`media_file`, `media_delete_ids`); nested values
-//     like price_tiers don't go through multipart, so media is saved in its
-//     own request after the JSON save.
+//   - Create and update are JSON only (multipart is 415). The thumbnail and the
+//     gallery have their own API (listing-files-api.ts), called after the JSON
+//     save, and never change the status.
 //   - Delete is a soft delete (204).
 //   - Five texts have an optional Bangla twin (title_bn, description_bn,
 //     condition_note_bn, warranty_bn, origin_bn).
 //   - `image_path` / `image_url` is the thumbnail (the cover picture). It is
-//     read only here and has its own endpoint: PUT / DELETE `{id}/thumbnail/`.
+//     read only here and changed through listing-files-api.ts.
 //   - `price_type` and `hourly_rate` no longer exist, and a product SKU must
 //     never send `price_type` / `description` (400 "Only for gigs.").
 //   - `requested_at` is when the listing joined the pending list (a seller
@@ -149,7 +149,7 @@ export interface ListingCore {
   slug: string;
   description: string;
   description_bn: string | null;
-  /** The thumbnail; read only here (see `putListingThumbnail`). */
+  /** The thumbnail; read only here (see listing-files-api.ts). */
   image_path: string | null;
   image_url: string | null;
   brand: number | null;
@@ -334,18 +334,6 @@ export function updateListingStatus(id: number, input: ListingStatusInput) {
   return updateListing(id, input);
 }
 
-/** Adds and/or removes gallery media in one multipart PATCH. Kept apart from
- * the JSON save because nested values (price_tiers) don't survive multipart. */
-export function syncListingMedia(id: number, files: File[], deleteIds: number[]) {
-  const formData = new FormData();
-  for (const file of files) formData.append("media_file", file);
-  for (const mediaId of deleteIds) formData.append("media_delete_ids", String(mediaId));
-  return authFetch<ListingDetail>("admin", `${LISTINGS_PATH}${id}/`, {
-    method: "PATCH",
-    body: formData,
-  });
-}
-
 export function deleteListing(id: number) {
   return authFetch<void>("admin", `${LISTINGS_PATH}${id}/`, { method: "DELETE" });
 }
@@ -359,30 +347,4 @@ export function bulkModerateListings(input: {
     method: "POST",
     body: JSON.stringify(input),
   });
-}
-
-/** What a thumbnail upload answers: the new picture plus the listing's status
- * (an admin's change never moves the status). */
-export interface ThumbnailResult {
-  image_path: string;
-  image_url: string;
-  status: ListingStatus;
-}
-
-/** Sets or replaces the thumbnail (JPG, PNG or WEBP, up to 10 MB). The server
- * deletes the previous file; a refused upload keeps the current one and
- * answers 400 `{"image": ["..."]}`. `authFetch` leaves Content-Type to the
- * browser for FormData. */
-export function putListingThumbnail(id: number, file: File) {
-  const formData = new FormData();
-  formData.append("image", file);
-  return authFetch<ThumbnailResult>("admin", `${LISTINGS_PATH}${id}/thumbnail/`, {
-    method: "PUT",
-    body: formData,
-  });
-}
-
-/** Removes the thumbnail (204, also when there was none). */
-export function deleteListingThumbnail(id: number) {
-  return authFetch<void>("admin", `${LISTINGS_PATH}${id}/thumbnail/`, { method: "DELETE" });
 }
