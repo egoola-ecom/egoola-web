@@ -8,19 +8,15 @@ import {
   GigForm,
   GigFormValues,
 } from "@/app/(admin)/admin/(protected)/gigs/gig-form";
-import {
-  SellerGigInput,
-  createSellerGig,
-  putSellerGigThumbnail,
-  syncSellerGigMedia,
-} from "@/lib/seller-gig-api";
+import { SellerGigInput, createSellerGig } from "@/lib/seller-gig-api";
+import { ApiError } from "@/lib/api";
+import { addFiles, filesErrorReason } from "@/lib/listing-files-api";
 import { FieldErrors, parseFieldErrors } from "@/lib/use-managed-list";
 import shell from "../../../seller-shell.module.css";
 import { useListingFailure } from "../../listings/listing-status";
 
 /** Create gig. The gig is always saved as pending and is the seller's own. It
- * goes as JSON (a multipart request cannot carry the packages); gallery files
- * and the thumbnail go up afterwards, each in its own request. */
+ * goes as JSON; the thumbnail and gallery go up afterwards with the files API. */
 export function GigCreateClient() {
   const router = useRouter();
   const fail = useListingFailure();
@@ -32,31 +28,26 @@ export function GigCreateClient() {
     setSubmitting(true);
     setFieldErrors({});
     setFormError(null);
-    let createdId: number | null = null;
     try {
       const created = await createSellerGig(input as SellerGigInput);
-      createdId = created.id;
-      if (files.length > 0) await syncSellerGigMedia(created.id, files, []);
-      if (thumbnail) {
+      // Files have their own API, so they go up once the gig exists. If that
+      // fails the gig is kept: stay on its edit page with the reason, so the
+      // seller can retry without creating a second gig.
+      if (files.length > 0 || thumbnail) {
         try {
-          await putSellerGigThumbnail(created.id, thumbnail);
-        } catch (thumbnailErr) {
-          // The gig exists: stay on its edit page with the reason, so the
-          // seller can retry the picture without creating a second gig.
-          const reason = parseFieldErrors(thumbnailErr).fieldErrors.image?.[0] ?? fail(thumbnailErr);
+          await addFiles("seller", created.id, { thumbnail, media: files });
+        } catch (filesErr) {
+          const reason =
+            filesErr instanceof ApiError && filesErr.status === 400
+              ? filesErrorReason(filesErr)
+              : fail(filesErr);
           if (reason == null) return;
-          router.push(`/seller/gigs/${created.id}/edit?thumbnailError=${encodeURIComponent(reason)}`);
+          router.push(`/seller/gigs/${created.id}/edit?filesError=${encodeURIComponent(reason)}`);
           return;
         }
       }
       router.push(`/seller/gigs/${created.id}?notice=created`);
     } catch (err) {
-      if (createdId != null) {
-        const { fieldErrors: fe, message } = parseFieldErrors(err);
-        const reason = fe.media_file?.join(" ") ?? message ?? "The files could not be uploaded.";
-        router.push(`/seller/gigs/${createdId}/edit?mediaError=${encodeURIComponent(reason)}`);
-        return;
-      }
       const message = fail(err);
       if (message == null) return;
       const parsed = parseFieldErrors(err);
