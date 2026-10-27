@@ -83,6 +83,20 @@ export function BuyerDetailClient({ id }: { id: number }) {
         </div>
         <button
           type="button"
+          className={styles.actionButton}
+          onClick={() => router.push(`/admin/carts?buyer=${id}`)}
+        >
+          Carts
+        </button>
+        <button
+          type="button"
+          className={styles.actionButton}
+          onClick={() => router.push(`/admin/wishlists?buyer=${id}`)}
+        >
+          Wishlist
+        </button>
+        <button
+          type="button"
           className={styles.addButton}
           onClick={() => router.push(`/admin/buyers/${id}/edit`)}
         >
