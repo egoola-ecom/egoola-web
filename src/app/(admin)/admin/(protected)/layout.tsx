@@ -85,6 +85,8 @@ const NAV_ITEMS: NavItem[] = [
       },
     ],
   },
+  { href: "/admin/jobs", label: "Jobs" },
+  { href: "/admin/bidding", label: "Bidding" },
   { href: "/admin/cms", label: "CMS" },
 ];
 
