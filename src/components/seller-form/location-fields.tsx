@@ -12,10 +12,13 @@ export function LocationFields({
   geo,
   errors,
   idPrefix = "reg",
+  optional = false,
 }: {
   geo: ReturnType<typeof useGeographySelection>;
   errors: FieldErrors;
   idPrefix?: string;
+  /** Country, state and city are asked for but not required (buyer sign-up). */
+  optional?: boolean;
 }) {
   const err = (key: string) => errors[key]?.join(" ");
   return (
@@ -25,7 +28,7 @@ export function LocationFields({
           The country list could not be loaded. Please try again in a moment.
         </p>
       )}
-      <Field id={`${idPrefix}-country`} label="Country" required error={err("country")}>
+      <Field id={`${idPrefix}-country`} label={optional ? "Country (optional)" : "Country"} required={!optional} error={err("country")}>
         <select
           id={`${idPrefix}-country`}
           className={inputClass(Boolean(err("country")))}
@@ -33,7 +36,7 @@ export function LocationFields({
           onChange={(event) =>
             geo.selectCountry(event.target.value ? Number(event.target.value) : null)
           }
-          required
+          required={!optional}
         >
           <option value="">Select country</option>
           {geo.countries.map((c) => (
@@ -43,7 +46,7 @@ export function LocationFields({
           ))}
         </select>
       </Field>
-      <Field id={`${idPrefix}-state`} label="State" required error={err("state")}>
+      <Field id={`${idPrefix}-state`} label={optional ? "State (optional)" : "State"} required={!optional} error={err("state")}>
         <select
           id={`${idPrefix}-state`}
           className={inputClass(Boolean(err("state")))}
@@ -52,7 +55,7 @@ export function LocationFields({
           onChange={(event) =>
             geo.selectState(event.target.value ? Number(event.target.value) : null)
           }
-          required
+          required={!optional}
         >
           <option value="">Select state</option>
           {geo.states.map((s) => (
@@ -62,7 +65,7 @@ export function LocationFields({
           ))}
         </select>
       </Field>
-      <Field id={`${idPrefix}-city`} label="City" required error={err("city")}>
+      <Field id={`${idPrefix}-city`} label={optional ? "City (optional)" : "City"} required={!optional} error={err("city")}>
         <select
           id={`${idPrefix}-city`}
           className={inputClass(Boolean(err("city")))}
@@ -71,7 +74,7 @@ export function LocationFields({
           onChange={(event) =>
             geo.selectCity(event.target.value ? Number(event.target.value) : null)
           }
-          required
+          required={!optional}
         >
           <option value="">Select city</option>
           {geo.cities.map((c) => (
