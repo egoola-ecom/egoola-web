@@ -44,5 +44,23 @@ seeded through the API (12 buyers, 9 sellers, 24 products, 13 gigs, 12 jobs, 19 
 
 ## Notes
 
-- `accepted_price_tier` is the tier's id in the accept answer, the full object in the guide. Both are read.
+- `accepted_price_tier` came back as a bare id on `/bidding/bids/` (the guide says the tier object). The backend fixed it; the client still reads both.
 - There is no Order screen yet; the accept answer is the only place the Order is shown.
+
+## Second pass: review and extended smoke test (2026-10-28)
+
+Seeded 30 more jobs and one job with 60 bids (place and cancel cycles), then ran about 70 more checks in
+Chrome (lists, paging, filters, edit, status flows, validation, mobile, auth). All pass after two fixes:
+
+- A job with more than 50 bids showed only 50 on its page with no note. It now says
+  "Showing the latest 50 of 60 bids" with a link to Bidding.
+- A non-numeric id (`/admin/jobs/abc`) sent requests with `NaN`. The four id pages now answer 404 first.
+
+Also confirmed: 45 jobs page 1 to 3 and search reset to page 1; filters for status, category, buyer, dates, buyer
+phone; "Load more" reaches all 60 bids once; edit sends only changed fields (a tier by `id`); hired job locks
+Update and every move but Mark complete and Cancel; completing a job completes its bid; cancelling an open job
+cancels its pending bids; a bid edit with a new tier sends its `duration`; accepting on a paused job shows the
+server message; a double click on Accept sends one request; no horizontal scroll at 390px; a bad access token is
+refreshed and a dead session goes to the login page. The backend `admin_job_bid_smoke.py` still passes (32 of 32).
+
+Not a bug: a negative price or a zero duration is stopped by the browser's own field check before our message.
