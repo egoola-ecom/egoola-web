@@ -6,9 +6,9 @@ export const metadata = { title: "Login" };
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ role?: string }>;
+  searchParams: Promise<{ role?: string; next?: string }>;
 }) {
-  const { role } = await searchParams;
+  const { role, next } = await searchParams;
   return (
     <div className={styles.page}>
       <div className={styles.promo}>
@@ -25,7 +25,7 @@ export default async function LoginPage({
       </div>
 
       <div className={styles.cardWrap}>
-        <LoginForm initialRole={role === "seller" ? "seller" : "buyer"} />
+        <LoginForm initialRole={role === "seller" ? "seller" : "buyer"} next={next} />
       </div>
     </div>
   );

@@ -6,11 +6,12 @@ import { useRouter } from "next/navigation";
 import { EyeIcon } from "@/components/eye-icon";
 import { ApiError } from "@/lib/api";
 import { getSession, login } from "@/lib/auth";
+import { safeBuyerNext } from "@/lib/buyer/login-redirect";
 import styles from "./login.module.css";
 
 type Role = "buyer" | "seller";
 
-export function LoginForm({ initialRole = "buyer" }: { initialRole?: Role }) {
+export function LoginForm({ initialRole = "buyer", next }: { initialRole?: Role; next?: string }) {
   const router = useRouter();
   const [role, setRole] = useState<Role>(initialRole);
   const [showPassword, setShowPassword] = useState(false);
@@ -19,11 +20,11 @@ export function LoginForm({ initialRole = "buyer" }: { initialRole?: Role }) {
 
   useEffect(() => {
     if (getSession("buyer")) {
-      router.replace("/buyer");
+      router.replace(safeBuyerNext(next));
     } else if (getSession("seller")) {
       router.replace("/seller");
     }
-  }, [router]);
+  }, [router, next]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,7 +37,7 @@ export function LoginForm({ initialRole = "buyer" }: { initialRole?: Role }) {
 
     try {
       await login(role, email, password);
-      router.push(role === "buyer" ? "/buyer" : "/seller");
+      router.push(role === "buyer" ? safeBuyerNext(next) : "/seller");
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -95,7 +96,7 @@ export function LoginForm({ initialRole = "buyer" }: { initialRole?: Role }) {
         <div className={styles.field}>
           <div className={styles.labelRow}>
             <label className={styles.label} htmlFor="account">
-              {role === "seller" ? "Phone number" : "Email"}
+              {role === "seller" ? "Phone number" : "Phone or email"}
             </label>
           </div>
           {/* Keyed by role so switching tabs never carries an email into the
@@ -104,10 +105,10 @@ export function LoginForm({ initialRole = "buyer" }: { initialRole?: Role }) {
             key={role}
             id="account"
             name="account"
-            type={role === "seller" ? "tel" : "email"}
+            type={role === "seller" ? "tel" : "text"}
             inputMode={role === "seller" ? "tel" : "email"}
             className={styles.input}
-            placeholder={role === "seller" ? "+8801XXXXXXXXX" : "Email"}
+            placeholder={role === "seller" ? "+8801XXXXXXXXX" : "+8801XXXXXXXXX or you@example.com"}
             autoComplete="username"
             autoFocus
             required
@@ -164,7 +165,13 @@ export function LoginForm({ initialRole = "buyer" }: { initialRole?: Role }) {
       <p className={styles.signup}>
         Need an Account?{" "}
         <Link
-          href={role === "seller" ? "/seller/register" : "/register"}
+          href={
+            role === "seller"
+              ? "/seller/register"
+              : next
+                ? `/register?next=${encodeURIComponent(next)}`
+                : "/register"
+          }
           className={styles.signupLink}
         >
           Sign Up

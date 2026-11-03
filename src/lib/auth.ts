@@ -81,11 +81,18 @@ function extractLoginErrorMessage(body: unknown): string {
   return "Sign in failed. Please try again.";
 }
 
+function loginBody(actorType: ActorType, who: string, password: string) {
+  if (actorType === "seller") return { phone: who, password };
+  if (actorType === "buyer" && !who.includes("@")) return { phone: who, password };
+  return { email: who, password };
+}
+
 /**
  * Signs in. A SELLER logs in with PHONE + password (typed exactly as at
- * sign-up; surrounding spaces are trimmed); admins and buyers use EMAIL +
- * password. `identifier` is the phone number for a seller, the email for the
- * others. A wrong password and an unknown phone give the same 401 message.
+ * sign-up; surrounding spaces are trimmed); admins use EMAIL + password. A
+ * BUYER may use either: an `identifier` with an "@" is sent as `email`, anything
+ * else as `phone` (the server wants exactly one of the two). A wrong password
+ * and an unknown phone give the same 401 message.
  */
 export async function login(
   actorType: ActorType,
@@ -96,7 +103,7 @@ export async function login(
   const response = await fetch(`${API_BASE_URL}/auth/${actorType}/login/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(actorType === "seller" ? { phone: who, password } : { email: who, password }),
+    body: JSON.stringify(loginBody(actorType, who, password)),
   });
 
   const data = await response.json().catch(() => undefined);
