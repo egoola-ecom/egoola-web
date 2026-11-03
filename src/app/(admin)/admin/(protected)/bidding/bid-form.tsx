@@ -43,6 +43,7 @@ function sameInstant(a: string | null | undefined, b: string | null | undefined)
  * The job and the seller never change after create. */
 export function BidForm({
   mode,
+  variant = "admin",
   initial,
   initialJob,
   initialSeller,
@@ -53,7 +54,12 @@ export function BidForm({
   onSubmit,
 }: {
   mode: "create" | "edit";
-  initial?: BidDetail | null;
+  /** "seller": the seller's own bid, no job or seller to pick. */
+  variant?: "admin" | "seller";
+  initial?: Pick<
+    BidDetail,
+    "description" | "proposed_start" | "proposed_end" | "price_tiers"
+  > | null;
   initialJob?: number | null;
   initialSeller?: number | null;
   fieldErrors: FieldErrors;
@@ -77,7 +83,7 @@ export function BidForm({
     setJobError(null);
     setSellerError(null);
 
-    if (mode === "create") {
+    if (mode === "create" && variant === "admin") {
       if (jobId == null) setJobError("Say which job this bid is for.");
       if (sellerId == null) setSellerError("Say which seller this bid is for.");
       if (jobId == null || sellerId == null) {
@@ -100,6 +106,10 @@ export function BidForm({
     const end = fromLocalInput(String(data.get("proposed_end") ?? ""));
     const price_tiers = built.items as BidInput["price_tiers"] | undefined;
 
+    if (mode === "create" && variant === "seller") {
+      onSubmit({ description, proposed_start: start, proposed_end: end, price_tiers });
+      return;
+    }
     if (mode === "create") {
       onSubmit({
         listing: jobId as number,
@@ -137,6 +147,8 @@ export function BidForm({
       ))}
 
       <div className={styles.formGrid}>
+        {variant === "admin" && (
+          <>
         <p className={styles.sectionDivider} style={{ borderTop: "none", paddingTop: 0 }}>
           Who and what
         </p>
@@ -169,6 +181,8 @@ export function BidForm({
             </p>
           )}
         </div>
+          </>
+        )}
 
         <div className={`${styles.field} ${styles.formGridFull}`}>
           <label className={styles.label} htmlFor="bid-description">

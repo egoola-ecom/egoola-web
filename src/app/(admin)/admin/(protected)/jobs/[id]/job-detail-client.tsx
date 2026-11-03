@@ -351,6 +351,12 @@ export function JobDetailClient({ id }: { id: number }) {
             </table>
           </div>
         )}
+        {bids != null && job.bid_count > bids.length && (
+          <p className={styles.fieldHint}>
+            Showing the latest {bids.length} of {job.bid_count} bids.{" "}
+            <Link href={`/admin/bidding?listing=${id}`}>See all of them in Bidding</Link>.
+          </p>
+        )}
         {job.status === "open_for_bidding" && (
           <p>
             <button
