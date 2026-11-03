@@ -194,3 +194,22 @@ export interface PublicSeller {
   product_count: number;
   gig_count: number;
 }
+
+// --- Geography -------------------------------------------------------------------
+
+export interface GeoRow {
+  id: number;
+  name: string;
+  slug: string;
+  country?: number;
+  state?: number;
+  city?: number;
+}
+
+/** The four geography lists are limit/offset, not page-based. */
+export interface OffsetResult<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
