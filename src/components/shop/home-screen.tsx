@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { listCategories, listCities, listGigs, listThanas } from "@/lib/buyer/catalog-repo";
-import type { GeoRow } from "@/lib/buyer/fixtures/geography";
-import type { GigRow, PublicCategory } from "@/lib/buyer/types";
+import { listCategories } from "@/lib/buyer/public-categories-api";
+import { listGigs } from "@/lib/buyer/public-gigs-api";
+import { listCities, listThanas } from "@/lib/buyer/public-geography-api";
+import type { GeoRow, GigRow, PublicCategory } from "@/lib/buyer/types";
+import { resolveMediaUrl } from "@/lib/env";
 import { GigCard } from "./gig-card";
 import { OwlCarousel } from "./owl-carousel";
 import { PRODUCT_TYPES, SHOP } from "./shop-links";
@@ -33,24 +35,35 @@ export function HomeScreen() {
   const [seeAll, setSeeAll] = useState(false);
 
   useEffect(() => {
-    void (async () => {
-      const top = await listCategories({ type: "service", page_size: 100 });
-      setGrands(top.results);
-      const entries = await Promise.all(
-        top.results.map(async (g) => [g.id, (await listCategories({ parent_id: g.id, page_size: 100 })).results] as const),
-      );
-      setParents(Object.fromEntries(entries));
-      setCities(await listCities({ country: 126 }));
-      const feed = await listGigs({ page_size: 12 });
-      setGigs(feed.results);
-      setTotal(feed.count);
-    })();
+    // Each block loads on its own: one failing call must not blank the page.
+    void listCategories({ type: "service", page_size: 100 })
+      .then(async (top) => {
+        setGrands(top.results);
+        const entries = await Promise.all(
+          top.results.map(
+            async (g) => [g.id, (await listCategories({ parent_id: g.id, page_size: 100 })).results] as const,
+          ),
+        );
+        setParents(Object.fromEntries(entries));
+      })
+      .catch(() => undefined);
+    void listCities({ country: 126 })
+      .then((res) => setCities(res.results))
+      .catch(() => undefined);
+    void listGigs({ page_size: 12 })
+      .then((feed) => {
+        setGigs(feed.results);
+        setTotal(feed.count);
+      })
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!city) { setThanas([]); return; }
-    void listThanas(Number(city)).then(setThanas);
+    void listThanas({ city: Number(city) })
+      .then((res) => setThanas(res.results))
+      .catch(() => setThanas([]));
   }, [city]);
 
   const topSeller = gigs.slice(0, 4);
@@ -82,14 +95,14 @@ export function HomeScreen() {
                 <li key={grand.id}>
                   <Link href={SHOP.category(grand.id)}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img width={20} src={grand.image_url ?? ""} alt={grand.name} /> {grand.name}
+                    {grand.image_url && <img width={20} src={resolveMediaUrl(grand.image_url) ?? undefined} alt="" />} {grand.name}
                     <i className="fas fa-angle-right" />
                   </Link>
                   <div className="subCategory">
                     <div className="row bg-white p-4 d-flex align-items-baseline" style={{ minHeight: "0%" }}>
                       {(parents[grand.id] ?? []).map((parent) => (
                         <div key={parent.id} className="col-md-3 py-1">
-                          <Link href={SHOP.category(parent.id)}>
+                          <Link href={SHOP.category(parent.id, [grand.id])}>
                             <h6>{parent.name_bn ? `${parent.name} (${parent.name_bn})` : parent.name}</h6>
                           </Link>
                         </div>
@@ -197,7 +210,7 @@ export function HomeScreen() {
               <Link href={SHOP.category(grand.id)}>
                 <div className="py-3 bgdk">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={grand.image_url ?? ""} className="pb-2" width={30} alt="" /><br />
+                  {grand.image_url && <><img src={resolveMediaUrl(grand.image_url) ?? undefined} className="pb-2" width={30} alt="" /><br /></>}
                   <p className="mb-0"><TwoLine name={grand.name} /></p>
                 </div>
               </Link>
@@ -222,7 +235,7 @@ export function HomeScreen() {
                 <div key={gig.id} className={`col-6 col-lg-3 text-center p-2 ${i > 1 ? "m-hideP" : ""}`}>
                   <Link href={SHOP.gig(gig.id, gig.slug)}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img width="100%" height="72%" className="pb-3" src={gig.image_url ?? ""} alt={gig.title} />
+                    <img width="100%" height="72%" className="pb-3" src={resolveMediaUrl(gig.image_url) ?? "/shop/images/no-img.jpg"} alt={gig.title} />
                     <h6>
                       BDT {taka(gig.discounted_price)}
                       <div className="text-truncate">{gig.title}</div>
@@ -241,7 +254,7 @@ export function HomeScreen() {
                 <div key={gig.id} className="col-6 col-lg-3 text-center p-2">
                   <Link href={SHOP.gig(gig.id, gig.slug)}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img width="100%" height="72%" className="pb-3" src={gig.image_url ?? ""} alt={gig.title} />
+                    <img width="100%" height="72%" className="pb-3" src={resolveMediaUrl(gig.image_url) ?? "/shop/images/no-img.jpg"} alt={gig.title} />
                     <h6>
                       BDT {taka(gig.discounted_price)}
                       <div className="text-truncate">{gig.title}</div>

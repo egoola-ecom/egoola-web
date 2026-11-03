@@ -3,8 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { getSession, type AuthSession } from "@/lib/auth";
-import { listCategories } from "@/lib/buyer/catalog-repo";
+import { listCategories } from "@/lib/buyer/public-categories-api";
+import { resolveMediaUrl } from "@/lib/env";
 import type { PublicCategory } from "@/lib/buyer/types";
+import { useCartSummary } from "@/lib/buyer/store/cart-badge";
+import { CartMenu } from "./browse/cart-menu";
 import { SHOP } from "./shop-links";
 
 const LOGO = "/shop/images/logo/1650083902k3PCiT6eGl.png";
@@ -15,6 +18,8 @@ const LOGO = "/shop/images/logo/1650083902k3PCiT6eGl.png";
  * dropdown and collapse scripts are replaced by React state. */
 export function ShopShell({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<AuthSession | null>(null);
+  const cartSummary = useCartSummary();
+  const cartCount = cartSummary?.item_count ?? 0;
   const [catOpen, setCatOpen] = useState(false);
   const [sideOpen, setSideOpen] = useState(false);
   const [mobilePane, setMobilePane] = useState<"menu" | "category">("menu");
@@ -26,7 +31,8 @@ export function ShopShell({ children }: { children: React.ReactNode }) {
     // localStorage is only there on the client.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setSession(getSession("buyer"));
-    void listCategories({ type: "service", page_size: 100 }).then((page) => setGrands(page.results));
+    void listCategories({ type: "service", page_size: 100 }).then((page) => setGrands(page.results))
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -35,7 +41,8 @@ export function ShopShell({ children }: { children: React.ReactNode }) {
       setChildren2([]);
       return;
     }
-    void listCategories({ parent_id: activeGrand, page_size: 100 }).then((page) => setChildren2(page.results));
+    void listCategories({ parent_id: activeGrand, page_size: 100 }).then((page) => setChildren2(page.results))
+      .catch(() => setChildren2([]));
   }, [activeGrand]);
 
   const closeAll = () => {
@@ -58,7 +65,7 @@ export function ShopShell({ children }: { children: React.ReactNode }) {
                   <div className="col">
                     <div className="m-menu text-center">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={grand.image_url ?? ""} title={grand.name} width={30} alt="" />
+                      {grand.image_url && <img src={resolveMediaUrl(grand.image_url) ?? undefined} title={grand.name} width={30} alt="" />}
                       <h6 className="pt-2 mb-0">{grand.name}</h6>
                     </div>
                   </div>
@@ -71,7 +78,7 @@ export function ShopShell({ children }: { children: React.ReactNode }) {
                   <ul id="ulMenu">
                     {children2.map((child) => (
                       <li key={child.id} className="py-2">
-                        <Link href={SHOP.category(child.id)} onClick={closeAll}>
+                        <Link href={SHOP.category(child.id, activeGrand != null ? [activeGrand] : [])} onClick={closeAll}>
                           {child.name} {child.name_bn && `(${child.name_bn})`}
                         </Link>
                       </li>
@@ -129,6 +136,12 @@ export function ShopShell({ children }: { children: React.ReactNode }) {
                 <li className="nav-item">
                   <Link className="nav-link menu-icon" href={SHOP.favourites}>
                     <i className="fas fa-heart" /> Favorite
+                  </Link>
+                </li>
+                <CartMenu summary={cartSummary} />
+                <li className="nav-item">
+                  <Link className="nav-link menu-icon" href={session ? SHOP.jobs : SHOP.login}>
+                    <i className="fas fa-briefcase" /> Jobs
                   </Link>
                 </li>
                 <li className="nav-item">
@@ -197,6 +210,8 @@ export function ShopShell({ children }: { children: React.ReactNode }) {
                 { href: SHOP.login, icon: "fas fa-user-lock", label: "Sign up" },
               ]),
           { href: SHOP.favourites, icon: "fas fa-heart", label: "Favourite" },
+          { href: session ? SHOP.jobs : SHOP.login, icon: "fas fa-briefcase", label: "My Jobs" },
+          { href: SHOP.cart, icon: "fas fa-shopping-cart", label: cartCount > 0 ? `Cart (${cartCount})` : "Cart" },
         ]} />
         <SideCard title="Tutorial" onNavigate={closeAll} options={[
           { href: "/buyer/create-account", icon: "fas fa-user-plus", label: "How To Create Account" },
