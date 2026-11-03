@@ -22,6 +22,10 @@ export function useCursorList<T extends { id: number }>(
   search: string,
   filters: Record<string, string | undefined>,
   pageSize = 20,
+  /** Seller screens answer a failed call themselves (a 401 goes to the seller
+   * login, a 403 reloads the account). Return the message to show, or null
+   * when nothing should be shown. Without it the admin rules apply. */
+  onFailure?: (err: unknown) => string | null,
 ) {
   const router = useRouter();
   const queryKey = JSON.stringify({ search, filters, pageSize });
@@ -37,8 +41,18 @@ export function useCursorList<T extends { id: number }>(
   // changed (or after a reload) is dropped instead of mixed into the new list.
   const generation = useRef(0);
 
+  const failureRef = useRef(onFailure);
+  useEffect(() => {
+    failureRef.current = onFailure;
+  });
+
   const handleFailure = useCallback(
     (err: unknown) => {
+      if (failureRef.current) {
+        const message = failureRef.current(err);
+        if (message != null) setError(message);
+        return;
+      }
       if (err instanceof AuthError) {
         clearSession("admin");
         router.replace("/admin/login");

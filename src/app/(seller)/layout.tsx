@@ -52,6 +52,15 @@ function StatusBanner({ me }: { me: SellerMe }) {
 
 const LISTING_HREF = "/seller/listings";
 const GIGS_HREF = "/seller/gigs";
+const JOBS_HREF = "/seller/jobs";
+const BIDS_HREF = "/seller/bids";
+
+/** The second row under the Jobs tab. */
+const JOBS_SUBTABS = [
+  { href: JOBS_HREF, label: "Job board" },
+  { href: `${JOBS_HREF}/mine`, label: "My jobs" },
+  { href: BIDS_HREF, label: "My bids" },
+];
 
 /** The second row under the Listing tab. A new product or gig is made with the
  * Create button on its own list page, so there are no extra entries. */
@@ -120,6 +129,7 @@ export default function SellerLayout({
           { href: "/seller", label: "Dashboard" },
           // "Listing" opens Product; Product and Gigs are its second row.
           { href: LISTING_HREF, label: "Listing" },
+          { href: JOBS_HREF, label: "Jobs" },
         ]
       : []),
     { href: "/seller/profile", label: "My profile" },
@@ -127,6 +137,13 @@ export default function SellerLayout({
   ];
 
   const inListing = pathname.startsWith(LISTING_HREF) || pathname.startsWith(GIGS_HREF);
+  const inJobs = pathname.startsWith(JOBS_HREF) || pathname.startsWith(BIDS_HREF);
+  // The job board's own page and a job's page are both "Job board"; My jobs and
+  // My bids have their own paths.
+  const jobsSubtabActive = (tab: (typeof JOBS_SUBTABS)[number]) =>
+    tab.href === JOBS_HREF
+      ? inJobs && !pathname.startsWith(`${JOBS_HREF}/mine`) && !pathname.startsWith(BIDS_HREF)
+      : pathname.startsWith(tab.href);
 
   return (
     <SellerContext.Provider value={{ me, setMe: setMeState, reload, handleAuthError }}>
@@ -136,7 +153,7 @@ export default function SellerLayout({
         loginPath="/login"
       />
       <div className={shell.page}>
-        <div className={`${shell.wrap} ${inListing ? shell.wrapWide : ""}`}>
+        <div className={`${shell.wrap} ${inListing || inJobs ? shell.wrapWide : ""}`}>
           <StatusBanner me={me} />
           <nav className={shell.tabs} aria-label="Seller sections">
             {tabs.map((tab) => (
@@ -148,7 +165,9 @@ export default function SellerLayout({
                     ? pathname === "/seller"
                     : tab.href === LISTING_HREF
                       ? inListing
-                      : pathname.startsWith(tab.href))
+                      : tab.href === JOBS_HREF
+                        ? inJobs
+                        : pathname.startsWith(tab.href))
                     ? shell.tabActive
                     : ""
                 }`}
@@ -166,6 +185,19 @@ export default function SellerLayout({
                   className={`${shell.subTab} ${
                     pathname.startsWith(tab.href) ? shell.subTabActive : ""
                   }`}
+                >
+                  {tab.label}
+                </Link>
+              ))}
+            </nav>
+          )}
+          {inJobs && me.can_operate && (
+            <nav className={shell.subTabs} aria-label="Job sections">
+              {JOBS_SUBTABS.map((tab) => (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  className={`${shell.subTab} ${jobsSubtabActive(tab) ? shell.subTabActive : ""}`}
                 >
                   {tab.label}
                 </Link>
