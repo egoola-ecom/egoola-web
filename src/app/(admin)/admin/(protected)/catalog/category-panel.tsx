@@ -220,7 +220,7 @@ export function CategoryPanel({ type }: { type: CategoryType }) {
   const [conflict, setConflict] = useState<{ item: CategoryItem; message: string } | null>(null);
 
   async function handleDeleteClick(item: CategoryItem) {
-    if (!window.confirm(`Delete category "${item.name}"? This cannot be undone.`)) return;
+    if (!window.confirm(`Delete category "${item.name}"? Any sub-categories under it are deleted too. This cannot be undone.`)) return;
     setActionError(null);
     setConflict(null);
     try {
