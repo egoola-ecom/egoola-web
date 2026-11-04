@@ -1,5 +1,6 @@
 import { publicGet } from "./public-fetch";
 import type { ListingType, PageResult, ProductDetail, ProductRow } from "./types";
+import { ENDPOINTS } from "../endpoints";
 
 export type ProductOrdering = "newest" | "oldest" | "price_asc" | "price_desc" | "title";
 
@@ -23,10 +24,10 @@ export interface ProductQuery {
 
 /** `GET /public/catalog/products/` (page-based). */
 export function listProducts(query: ProductQuery = {}) {
-  return publicGet<PageResult<ProductRow>>("/catalog/products/", { ...query });
+  return publicGet<PageResult<ProductRow>>(ENDPOINTS.public.products.list, { ...query });
 }
 
 /** `GET /public/catalog/products/{id}/`. A gig id is a 404 here. */
 export function getProduct(id: number) {
-  return publicGet<ProductDetail>(`/catalog/products/${id}/`);
+  return publicGet<ProductDetail>(ENDPOINTS.public.products.detail(id));
 }

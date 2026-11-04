@@ -1,5 +1,6 @@
 import { publicGet } from "./public-fetch";
 import type { GigDetail, GigPriceType, GigRow, PageResult } from "./types";
+import { ENDPOINTS } from "../endpoints";
 
 export type GigOrdering = "newest" | "oldest" | "price_asc" | "price_desc" | "title";
 
@@ -23,10 +24,10 @@ export interface GigQuery {
 
 /** `GET /public/catalog/gigs/` (page-based). */
 export function listGigs(query: GigQuery = {}) {
-  return publicGet<PageResult<GigRow>>("/catalog/gigs/", { ...query });
+  return publicGet<PageResult<GigRow>>(ENDPOINTS.public.gigs.list, { ...query });
 }
 
 /** `GET /public/catalog/gigs/{id}/`. A product id is a 404 here. */
 export function getGig(id: number) {
-  return publicGet<GigDetail>(`/catalog/gigs/${id}/`);
+  return publicGet<GigDetail>(ENDPOINTS.public.gigs.detail(id));
 }

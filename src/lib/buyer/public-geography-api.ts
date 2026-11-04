@@ -1,5 +1,6 @@
 import { publicGet, type QueryValue } from "./public-fetch";
 import type { GeoRow, OffsetResult } from "./types";
+import { ENDPOINTS } from "../endpoints";
 
 // The four geography lists are limit/offset ({count, next, previous, results}),
 // a deliberate exception to the page-based lists. A dropdown needs a whole
@@ -27,12 +28,12 @@ async function loadLevel(
   return { count, next: null, previous: null, results: rows };
 }
 
-export const listCountries = () => loadLevel("/geography/countries/", {});
+export const listCountries = () => loadLevel(ENDPOINTS.public.geography.countries, {});
 
-export const listStates = (country: number) => loadLevel("/geography/states/", { country });
+export const listStates = (country: number) => loadLevel(ENDPOINTS.public.geography.states, { country });
 
 export const listCities = (filter: { country?: number; state?: number }) =>
-  loadLevel("/geography/cities/", filter);
+  loadLevel(ENDPOINTS.public.geography.cities, filter);
 
 export const listThanas = (filter: { country?: number; state?: number; city?: number }) =>
-  loadLevel("/geography/thanas/", filter);
+  loadLevel(ENDPOINTS.public.geography.thanas, filter);

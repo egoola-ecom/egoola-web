@@ -1,5 +1,6 @@
 import { ApiError } from "./api";
 import { API_BASE_URL } from "./env";
+import { ENDPOINTS } from "./endpoints";
 
 /** The document kinds a seller can attach when signing up. */
 export type RegisterMediaFor = "nid" | "birth_certificate" | "certificate" | "other";
@@ -83,7 +84,7 @@ export async function registerSeller(input: SellerRegisterInput): Promise<Seller
   }
   if (input.info) formData.append("info", JSON.stringify(input.info));
 
-  const response = await fetch(`${API_BASE_URL}/auth/seller/register/`, {
+  const response = await fetch(`${API_BASE_URL}${ENDPOINTS.auth.registerSeller}`, {
     method: "POST",
     body: formData,
     cache: "no-store",

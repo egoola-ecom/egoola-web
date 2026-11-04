@@ -1,5 +1,6 @@
 import { API_BASE_URL } from "./env";
 import { ApiError } from "./api";
+import { ENDPOINTS } from "./endpoints";
 
 export type ActorType = "admin" | "seller" | "buyer";
 
@@ -100,7 +101,7 @@ export async function login(
   password: string,
 ): Promise<AuthSession> {
   const who = identifier.trim();
-  const response = await fetch(`${API_BASE_URL}/auth/${actorType}/login/`, {
+  const response = await fetch(`${API_BASE_URL}${ENDPOINTS.auth.login(actorType)}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(loginBody(actorType, who, password)),
@@ -144,7 +145,7 @@ async function doRefresh(actorType: ActorType): Promise<string> {
   const session = getSession(actorType);
   if (!session) throw new AuthError("no_session");
 
-  const response = await fetch(`${API_BASE_URL}/auth/token/refresh/`, {
+  const response = await fetch(`${API_BASE_URL}${ENDPOINTS.auth.refresh}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ refresh: session.refresh }),

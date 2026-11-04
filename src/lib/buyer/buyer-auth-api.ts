@@ -1,6 +1,7 @@
 import { ApiError } from "../api";
 import { AuthSession, saveSession } from "../auth";
 import { API_BASE_URL } from "../env";
+import { ENDPOINTS } from "../endpoints";
 
 /** Only `name`, `phone` and `password` are needed. Every other key is left out
  * (not sent as an empty string) when the buyer did not fill it in: an empty
@@ -86,7 +87,7 @@ export async function registerBuyer(input: BuyerRegisterInput): Promise<BuyerReg
     };
   }
 
-  const response = await fetch(`${API_BASE_URL}/auth/buyer/register/`, { ...init, cache: "no-store" });
+  const response = await fetch(`${API_BASE_URL}${ENDPOINTS.auth.registerBuyer}`, { ...init, cache: "no-store" });
   const body: unknown = await response.json().catch(() => undefined);
   if (!response.ok) throw new ApiError(response.status, response.statusText, body);
 

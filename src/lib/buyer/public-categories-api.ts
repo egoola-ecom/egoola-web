@@ -1,5 +1,6 @@
 import { publicGet } from "./public-fetch";
 import type { CategoryType, PageResult, PublicCategory } from "./types";
+import { ENDPOINTS } from "../endpoints";
 
 export interface CategoryQuery {
   /** Direct children of this category; none = the top level. */
@@ -13,7 +14,7 @@ export interface CategoryQuery {
 
 /** `GET /public/catalog/categories/` (page-based). */
 export function listCategories(query: CategoryQuery = {}) {
-  return publicGet<PageResult<PublicCategory>>("/catalog/categories/", { ...query });
+  return publicGet<PageResult<PublicCategory>>(ENDPOINTS.public.categories, { ...query });
 }
 
 /** Names of a category's ancestors and of itself, root first. There is no

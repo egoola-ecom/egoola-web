@@ -13,11 +13,12 @@ export function toQuery(params: Record<string, QueryValue>): string {
   return text ? `?${text}` : "";
 }
 
-/** A public (no login) read. The server answers a bad filter with 400
+/** A public (no login) read. `path` is the full address from `ENDPOINTS.public`.
+ * The server answers a bad filter with 400
  * `{field: [message]}` and an unknown / invisible id or a page past the last
  * with 404 `{detail}`. */
 export function publicGet<T>(path: string, params: Record<string, QueryValue> = {}): Promise<T> {
-  return apiFetch<T>(`/public${path}${toQuery(params)}`);
+  return apiFetch<T>(`${path}${toQuery(params)}`);
 }
 
 export function isNotFound(err: unknown): boolean {
