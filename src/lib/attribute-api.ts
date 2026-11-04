@@ -115,6 +115,21 @@ export function listAttributeValues(params: URLSearchParams) {
   return authFetch<PaginatedResponse<AttributeValueItem>>("admin", `${VALUES.list}?${params}`);
 }
 
+/** Every value of one attribute, following `next` pages, so an attribute with
+ * more than one page of values is never cut off. */
+export async function listAllAttributeValues(attributeId: number): Promise<AttributeValueItem[]> {
+  const all: AttributeValueItem[] = [];
+  const pageSize = 100;
+  for (let offset = 0; ; offset += pageSize) {
+    const page = await listAttributeValues(
+      new URLSearchParams({ attribute: String(attributeId), limit: String(pageSize), offset: String(offset) }),
+    );
+    all.push(...page.results);
+    if (!page.next) break;
+  }
+  return all;
+}
+
 export function createAttributeValue(input: AttributeValueInput & { attribute: number }) {
   return authFetch<AttributeValueItem>("admin", VALUES.list, {
     method: "POST",

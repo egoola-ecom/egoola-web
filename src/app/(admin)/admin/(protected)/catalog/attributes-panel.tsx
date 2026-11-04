@@ -12,7 +12,7 @@ import {
   createAttributeValue,
   deleteAttribute,
   deleteAttributeValue,
-  listAttributeValues,
+  listAllAttributeValues,
   listAttributes,
   updateAttribute,
   updateAttributeValue,
@@ -302,9 +302,9 @@ function ValuesManager({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setLoadError(null);
-    listAttributeValues(new URLSearchParams({ attribute: String(attribute.id), limit: "100" }))
-      .then((page) => {
-        if (!cancelled) setValues(page.results);
+    listAllAttributeValues(attribute.id)
+      .then((rows) => {
+        if (!cancelled) setValues(rows);
       })
       .catch((err) => {
         if (cancelled || onAuthError(err)) return;
