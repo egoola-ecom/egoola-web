@@ -13,6 +13,8 @@ import {
 } from "@/lib/brand-api";
 import { apiErrorDetail, isConflict } from "@/lib/api";
 import { AuthError, clearSession } from "@/lib/auth";
+import { resolveMediaUrl } from "@/lib/env";
+import { SIZE_HINT_IMAGE, takeFile } from "@/lib/file-limits";
 import { FieldErrors, parseFieldErrors, useManagedList } from "@/lib/use-managed-list";
 import { DeleteConflictBanner } from "../_shared/delete-conflict";
 import { ReadonlyField } from "../_shared/readonly-field";
@@ -34,17 +36,52 @@ function BrandForm({
   onSubmit: (input: BrandInput) => void;
 }) {
   const [isActive, setIsActive] = useState(initial?.is_active ?? true);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(resolveMediaUrl(initial?.image_url));
+  const [sizeError, setSizeError] = useState<string | null>(null);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    onSubmit({ name: String(data.get("name") ?? ""), is_active: isActive });
+    onSubmit({ name: String(data.get("name") ?? ""), is_active: isActive, image: imageFile });
   }
 
   return (
     <form onSubmit={handleSubmit}>
       {formError && <p className={styles.errorBanner}>{formError}</p>}
       <div className={styles.formGrid}>
+        <div className={styles.imageUploader}>
+          <div className={styles.imagePreview} data-testid="brand-image-preview">
+            {preview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={preview} alt="" />
+            ) : (
+              "No logo"
+            )}
+          </div>
+          <label className={styles.fileButton}>
+            {initial?.image_url || imageFile ? "Replace logo" : "Choose logo"}
+            <input
+              type="file"
+              accept="image/*"
+              data-testid="brand-image-input"
+              style={{ display: "none" }}
+              onChange={(event) => {
+                const file = takeFile(event.target, setSizeError);
+                if (file === undefined) return;
+                setImageFile(file);
+                if (file) setPreview(URL.createObjectURL(file));
+              }}
+            />
+          </label>
+        </div>
+        <p className={`${styles.fieldHint} ${styles.formGridFull}`}>{`Image files only. ${SIZE_HINT_IMAGE}`}</p>
+        {(sizeError || fieldErrors.image?.[0]) && (
+          <p className={`${styles.fieldError} ${styles.formGridFull}`} data-testid="brand-image-error">
+            {sizeError ?? fieldErrors.image![0]}
+          </p>
+        )}
+
         <div className={`${styles.field} ${styles.formGridFull}`}>
           <label className={styles.label} htmlFor="brand-name">
             Name
@@ -223,6 +260,7 @@ export function BrandsPanel() {
         <table className={styles.table}>
           <thead>
             <tr>
+              <th>Image</th>
               <th>Name</th>
               <th>Slug</th>
               <th>Status</th>
@@ -233,19 +271,32 @@ export function BrandsPanel() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className={styles.stateRow}>
+                <td colSpan={6} className={styles.stateRow}>
                   Loading…
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={5} className={styles.stateRow}>
+                <td colSpan={6} className={styles.stateRow}>
                   No brands found.
                 </td>
               </tr>
             ) : (
               items.map((item) => (
                 <tr key={item.id}>
+                  <td>
+                    {item.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={resolveMediaUrl(item.image_url) ?? undefined}
+                        alt={`${item.name} logo`}
+                        className={styles.thumb}
+                        data-testid="brand-thumb"
+                      />
+                    ) : (
+                      <span className={styles.thumb} data-testid="brand-no-image" aria-label="No logo" />
+                    )}
+                  </td>
                   <td className={styles.primaryText}>{item.name}</td>
                   <td className={styles.secondaryText}>{item.slug}</td>
                   <td>

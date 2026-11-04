@@ -23,6 +23,7 @@ import { CategoryParentPicker } from "./category-parent-picker";
 import { DeleteConflictBanner } from "../_shared/delete-conflict";
 import { ReadonlyField } from "../_shared/readonly-field";
 import { ALLOW_TAXONOMY_DELETE } from "../_shared/delete-switch";
+import { SIZE_HINT_IMAGE, takeFile } from "@/lib/file-limits";
 import styles from "../management.module.css";
 
 const STATUS_OPTIONS: { value: CategoryStatus; label: string }[] = [
@@ -52,6 +53,7 @@ function CategoryForm({
   onSubmit: (input: CategoryInput) => void;
 }) {
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [sizeError, setSizeError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(resolveMediaUrl(initial?.image_url));
   const [parentId, setParentId] = useState<number | null>(initial?.parent ?? null);
 
@@ -88,15 +90,17 @@ function CategoryForm({
               accept="image/*"
               style={{ display: "none" }}
               onChange={(event) => {
-                const file = event.target.files?.[0] ?? null;
+                const file = takeFile(event.target, setSizeError);
+                if (file === undefined) return;
                 setImageFile(file);
                 if (file) setPreview(URL.createObjectURL(file));
               }}
             />
           </label>
         </div>
-        {fieldErrors.image?.[0] && (
-          <p className={`${styles.fieldError} ${styles.formGridFull}`}>{fieldErrors.image[0]}</p>
+        <p className={`${styles.fieldHint} ${styles.formGridFull}`}>{`Image files only. ${SIZE_HINT_IMAGE}`}</p>
+        {(sizeError || fieldErrors.image?.[0]) && (
+          <p className={`${styles.fieldError} ${styles.formGridFull}`}>{sizeError ?? fieldErrors.image![0]}</p>
         )}
 
         <div className={`${styles.field} ${styles.formGridFull}`}>
@@ -333,6 +337,7 @@ export function CategoryPanel({ type }: { type: CategoryType }) {
         <table className={styles.table}>
           <thead>
             <tr>
+              <th>Image</th>
               <th>Name</th>
               <th>Immediate Parent</th>
               <th>Parent Chain</th>
@@ -344,13 +349,13 @@ export function CategoryPanel({ type }: { type: CategoryType }) {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className={styles.stateRow}>
+                <td colSpan={7} className={styles.stateRow}>
                   Loading…
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={6} className={styles.stateRow}>
+                <td colSpan={7} className={styles.stateRow}>
                   No categories found.
                 </td>
               </tr>
@@ -358,14 +363,19 @@ export function CategoryPanel({ type }: { type: CategoryType }) {
               items.map((item) => (
                 <tr key={item.id}>
                   <td>
-                    <div className={styles.thumbCell}>
-                      {item.image_url && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={resolveMediaUrl(item.image_url) ?? undefined} alt="" className={styles.thumb} />
-                      )}
-                      <span className={styles.primaryText}>{item.name}</span>
-                    </div>
+                    {item.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={resolveMediaUrl(item.image_url) ?? undefined}
+                        alt={`${item.name} image`}
+                        className={styles.thumb}
+                        data-testid="category-thumb"
+                      />
+                    ) : (
+                      <span className={styles.thumb} data-testid="category-no-image" aria-label="No image" />
+                    )}
                   </td>
+                  <td className={styles.primaryText}>{item.name}</td>
                   <td className={styles.secondaryText}>
                     {item.parent == null
                       ? "—"
