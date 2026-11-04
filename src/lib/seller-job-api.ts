@@ -2,6 +2,7 @@ import type { CursorResponse } from "./accounts-api";
 import { authFetch } from "./auth";
 import type { BidInput, BidStatus, BidTier } from "./admin-bids-api";
 import type { JobBudget, JobCategory, JobStatus } from "./admin-jobs-api";
+import { ENDPOINTS } from "./endpoints";
 
 // ---------------------------------------------------------------------------
 // The seller's job board and bids (docs/seller-api-guide.md §6c,
@@ -82,43 +83,41 @@ export interface SellerJobDetail extends SellerJobCard {
  * (the job is in the URL, the seller is the token). */
 export type SellerBidInput = Omit<BidInput, "listing" | "bidder">;
 
-const JOBS_PATH = "/seller/jobs/";
-const BIDS_PATH = "/seller/bids/";
 
 /** Pass the filters for the first page, or the server's `next` link to go on. */
 export function listBoardJobs(target: URLSearchParams | string) {
-  const path = typeof target === "string" ? target : `${JOBS_PATH}?${target}`;
+  const path = typeof target === "string" ? target : `${ENDPOINTS.seller.jobs.list}?${target}`;
   return authFetch<CursorResponse<SellerJobCard>>("seller", path);
 }
 
 /** Pass `won=true` among the filters for only the jobs I got. */
 export function listMyJobs(target: URLSearchParams | string) {
-  const path = typeof target === "string" ? target : `${JOBS_PATH}mine/?${target}`;
+  const path = typeof target === "string" ? target : `${ENDPOINTS.seller.jobs.mine}?${target}`;
   return authFetch<CursorResponse<SellerJobCard>>("seller", path);
 }
 
 export function getSellerJob(id: number) {
-  return authFetch<SellerJobDetail>("seller", `${JOBS_PATH}${id}/`);
+  return authFetch<SellerJobDetail>("seller", ENDPOINTS.seller.jobs.detail(id));
 }
 
 export function listMyBids(target: URLSearchParams | string) {
-  const path = typeof target === "string" ? target : `${BIDS_PATH}?${target}`;
+  const path = typeof target === "string" ? target : `${ENDPOINTS.seller.bids.list}?${target}`;
   return authFetch<CursorResponse<SellerBid>>("seller", path);
 }
 
 export function getMyBid(id: number) {
-  return authFetch<SellerBidDetail>("seller", `${BIDS_PATH}${id}/`);
+  return authFetch<SellerBidDetail>("seller", ENDPOINTS.seller.bids.detail(id));
 }
 
 export function placeBid(jobId: number, input: Partial<SellerBidInput>) {
-  return authFetch<SellerBidDetail>("seller", `${JOBS_PATH}${jobId}/bids/`, {
+  return authFetch<SellerBidDetail>("seller", ENDPOINTS.seller.jobs.bids(jobId), {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export function updateMyBid(id: number, input: Partial<SellerBidInput>) {
-  return authFetch<SellerBidDetail>("seller", `${BIDS_PATH}${id}/`, {
+  return authFetch<SellerBidDetail>("seller", ENDPOINTS.seller.bids.detail(id), {
     method: "PATCH",
     body: JSON.stringify(input),
   });

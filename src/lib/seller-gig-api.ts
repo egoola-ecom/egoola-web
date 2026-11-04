@@ -2,6 +2,7 @@ import type { PaginatedResponse } from "./accounts-api";
 import { authFetch } from "./auth";
 import type { GigDetail, GigInput, GigListItem } from "./gig-api";
 import type { SellerListingStatusLog } from "./seller-listing-api";
+import { ENDPOINTS } from "./endpoints";
 
 // ---------------------------------------------------------------------------
 // A seller's own gigs (service offers): `/seller/gigs/`
@@ -42,25 +43,25 @@ export type SellerGigInput = Omit<GigInput, "seller" | "status" | "note" | "curr
   note?: string | null;
 };
 
-const GIGS_PATH = "/seller/gigs/";
+const GIGS = ENDPOINTS.seller.gigs;
 
 export function listSellerGigs(params: URLSearchParams) {
-  return authFetch<PaginatedResponse<SellerGigRow>>("seller", `${GIGS_PATH}?${params}`);
+  return authFetch<PaginatedResponse<SellerGigRow>>("seller", `${GIGS.list}?${params}`);
 }
 
 export function getSellerGig(id: number) {
-  return authFetch<SellerGigDetail>("seller", `${GIGS_PATH}${id}/`);
+  return authFetch<SellerGigDetail>("seller", GIGS.detail(id));
 }
 
 export function createSellerGig(input: SellerGigInput) {
-  return authFetch<SellerGigDetail>("seller", GIGS_PATH, {
+  return authFetch<SellerGigDetail>("seller", GIGS.list, {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export function updateSellerGig(id: number, input: Partial<SellerGigInput>) {
-  return authFetch<SellerGigDetail>("seller", `${GIGS_PATH}${id}/`, {
+  return authFetch<SellerGigDetail>("seller", GIGS.detail(id), {
     method: "PATCH",
     body: JSON.stringify(input),
   });

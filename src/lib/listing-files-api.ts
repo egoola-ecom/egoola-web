@@ -1,6 +1,7 @@
 import { authFetch } from "./auth";
 import type { ListingMediaItem, ListingStatus } from "./listing-api";
 import { parseFieldErrors } from "./use-managed-list";
+import { ENDPOINTS } from "./endpoints";
 
 // ---------------------------------------------------------------------------
 // Files of a product or a gig: the thumbnail (cover picture) and the gallery.
@@ -40,7 +41,9 @@ export interface ChangeFilesInput {
 }
 
 function filesPath(scope: FilesScope, id: number) {
-  return scope === "admin" ? `/catalog/listing-files/${id}/` : `/seller/listing-files/${id}/`;
+  return scope === "admin"
+    ? ENDPOINTS.admin.catalog.listingFiles.detail(id)
+    : ENDPOINTS.seller.listingFiles.detail(id);
 }
 
 /** `authFetch` leaves Content-Type to the browser for FormData (the multipart

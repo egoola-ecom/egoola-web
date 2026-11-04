@@ -9,6 +9,7 @@ import type {
   PaymentStatus,
   StatusHistory,
 } from "./buyer/buyer-orders-api";
+import { ENDPOINTS } from "./endpoints";
 
 // ---------------------------------------------------------------------------
 // The orders placed with this seller (egoola-server docs/seller/
@@ -62,20 +63,20 @@ export interface SellerOrder extends SellerOrderRow {
   rejected_reason: string | null;
 }
 
-const PATH = "/seller/orders/";
+const ORDERS = ENDPOINTS.seller.orders;
 
 /** Pass the filters for the first page, or the server's `next` link to go on. */
 export function listSellerOrders(target: URLSearchParams | string) {
-  const path = typeof target === "string" ? target : `${PATH}?${target}`;
+  const path = typeof target === "string" ? target : `${ORDERS.list}?${target}`;
   return authFetch<CursorResponse<SellerOrderRow>>("seller", path);
 }
 
-export const getSellerOrder = (id: number) => authFetch<SellerOrder>("seller", `${PATH}${id}/`);
+export const getSellerOrder = (id: number) => authFetch<SellerOrder>("seller", ORDERS.detail(id));
 
 /** `reason` is required by the server for `rejected`, and ignored otherwise. */
 export function moveSellerOrder(id: number, status: SellerOrderStatus, reason?: string) {
   const body = status === "rejected" ? { status, reason: reason?.trim() ?? "" } : { status };
-  return authFetch<SellerOrder>("seller", `${PATH}${id}/`, { method: "PATCH", body: JSON.stringify(body) });
+  return authFetch<SellerOrder>("seller", ORDERS.detail(id), { method: "PATCH", body: JSON.stringify(body) });
 }
 
 export interface OrderMove {

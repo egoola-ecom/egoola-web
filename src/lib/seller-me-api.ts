@@ -2,6 +2,7 @@ import type { SellerBusinessInfo, SellerStatus, SellerVerificationStatus } from 
 import { authFetch, getSession, saveSession } from "./auth";
 import { EducationEntry, ExperienceEntry, MediaItem } from "./profile-fields";
 import type { RegisterBusinessInfo, RegisterMediaFor } from "./seller-register-api";
+import { ENDPOINTS } from "./endpoints";
 
 /** The seller's own profile: `GET /seller/me/`. No password, wallet or change
  * log. `email` and `phone` are shown but cannot be changed (for now). */
@@ -59,7 +60,7 @@ export interface SellerMePatch {
   media_delete_ids?: number[];
 }
 
-const ME_PATH = "/seller/me/";
+const ME_PATH = ENDPOINTS.seller.me.root;
 
 function hasFiles(patch: SellerMePatch): boolean {
   // Document changes (new files or removals) always go as multipart.
@@ -137,7 +138,7 @@ export async function updateSellerMe(patch: SellerMePatch): Promise<SellerMe> {
  * admin queue as the newest request; `note` (max 1000) is a message to the
  * reviewer. */
 export async function resubmitSeller(note?: string): Promise<SellerMe> {
-  const me = await authFetch<SellerMe>("seller", `${ME_PATH}resubmit/`, {
+  const me = await authFetch<SellerMe>("seller", ENDPOINTS.seller.me.resubmit, {
     method: "POST",
     body: JSON.stringify(note ? { note } : {}),
   });
@@ -146,7 +147,7 @@ export async function resubmitSeller(note?: string): Promise<SellerMe> {
 }
 
 export function changeSellerPassword(currentPassword: string, newPassword: string) {
-  return authFetch<{ detail: string }>("seller", `${ME_PATH}change-password/`, {
+  return authFetch<{ detail: string }>("seller", ENDPOINTS.seller.me.changePassword, {
     method: "POST",
     body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
   });

@@ -7,6 +7,7 @@ import type {
   ListingListItem,
   ListingStatus,
 } from "./listing-api";
+import { ENDPOINTS } from "./endpoints";
 
 // ---------------------------------------------------------------------------
 // A seller's own listings: `/seller/listings/` (docs/seller-api-guide.md §6).
@@ -105,26 +106,25 @@ export type SellerListingInput = Omit<
   sku?: string;
 };
 
-const LISTINGS_PATH = "/seller/listings/";
-const LOOKUPS_PATH = "/seller/lookups/";
+const LISTINGS = ENDPOINTS.seller.listings;
 
 export function listSellerListings(params: URLSearchParams) {
-  return authFetch<PaginatedResponse<SellerListingRow>>("seller", `${LISTINGS_PATH}?${params}`);
+  return authFetch<PaginatedResponse<SellerListingRow>>("seller", `${LISTINGS.list}?${params}`);
 }
 
 export function getSellerListing(id: number) {
-  return authFetch<SellerListingDetail>("seller", `${LISTINGS_PATH}${id}/`);
+  return authFetch<SellerListingDetail>("seller", LISTINGS.detail(id));
 }
 
 export function createSellerListing(input: SellerListingInput) {
-  return authFetch<SellerListingDetail>("seller", LISTINGS_PATH, {
+  return authFetch<SellerListingDetail>("seller", LISTINGS.list, {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export function updateSellerListing(id: number, input: Partial<SellerListingInput>) {
-  return authFetch<SellerListingDetail>("seller", `${LISTINGS_PATH}${id}/`, {
+  return authFetch<SellerListingDetail>("seller", LISTINGS.detail(id), {
     method: "PATCH",
     body: JSON.stringify(input),
   });
@@ -134,7 +134,7 @@ export function updateSellerListing(id: number, input: Partial<SellerListingInpu
  * follows `next` anyway, so a longer list is never cut off. */
 async function listAll<T>(path: string, params: Record<string, string> = {}): Promise<T[]> {
   const query = new URLSearchParams({ limit: "1000", ...params });
-  let page = await authFetch<PaginatedResponse<T>>("seller", `${LOOKUPS_PATH}${path}/?${query}`);
+  let page = await authFetch<PaginatedResponse<T>>("seller", `${path}?${query}`);
   const all = [...page.results];
   while (page.next) {
     page = await authFetch<PaginatedResponse<T>>("seller", page.next);
@@ -146,17 +146,17 @@ async function listAll<T>(path: string, params: Record<string, string> = {}): Pr
 /** Active categories of one type (a category must match the listing's
  * `catalog_type`). The list is flat; `parent` builds the tree. */
 export function listSellerCategories(type: "product" | "service") {
-  return listAll<SellerLookupCategory>("categories", { type });
+  return listAll<SellerLookupCategory>(ENDPOINTS.seller.lookups.categories, { type });
 }
 
 export function listSellerBrands() {
-  return listAll<SellerLookupBrand>("brands");
+  return listAll<SellerLookupBrand>(ENDPOINTS.seller.lookups.brands);
 }
 
 export function listSellerMeasurements() {
-  return listAll<SellerLookupMeasurement>("measurements");
+  return listAll<SellerLookupMeasurement>(ENDPOINTS.seller.lookups.measurements);
 }
 
 export function listSellerAttributes() {
-  return listAll<SellerLookupAttribute>("attributes");
+  return listAll<SellerLookupAttribute>(ENDPOINTS.seller.lookups.attributes);
 }
