@@ -99,3 +99,31 @@
   color: var(--brand-muted);
   line-height: 1.4;
 }
+
+.statusRow {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.statusChip {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: baseline;
+  padding: 0.35rem 0.75rem;
+  background: #fff;
+  border: 1px solid var(--brand-border);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  color: var(--brand-muted);
+}
+
+.statusChip strong {
+  color: #1a1a1a;
+  font-variant-numeric: tabular-nums;
+}
+
+.statusChip:hover {
+  border-color: var(--brand-green);
+}
