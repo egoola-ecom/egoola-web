@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { SIZE_HINT_IMAGE, takeFile } from "@/lib/file-limits";
 import styles from "../management.module.css";
 
 function initials(name: string): string {
@@ -22,6 +23,7 @@ export function ProfilePictureField({
   onFileChange: (file: File | null) => void;
 }) {
   const [preview, setPreview] = useState<string | null>(initialUrl);
+  const [sizeError, setSizeError] = useState<string | null>(null);
 
   return (
     <div className={styles.avatarUploader}>
@@ -40,12 +42,19 @@ export function ProfilePictureField({
           accept="image/*"
           style={{ display: "none" }}
           onChange={(event) => {
-            const file = event.target.files?.[0] ?? null;
+            const file = takeFile(event.target, setSizeError);
+            if (file === undefined) return;
             onFileChange(file);
             if (file) setPreview(URL.createObjectURL(file));
           }}
         />
       </label>
+      <p className={styles.fieldHint}>{`Image files only. ${SIZE_HINT_IMAGE}`}</p>
+      {sizeError && (
+        <p className={styles.fieldError} role="alert">
+          {sizeError}
+        </p>
+      )}
     </div>
   );
 }

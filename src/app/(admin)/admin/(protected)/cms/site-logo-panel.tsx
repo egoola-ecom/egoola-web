@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { SiteLogo, deleteSiteLogo, getSiteLogo, uploadSiteLogo } from "@/lib/cms-api";
 import { AuthError, clearSession } from "@/lib/auth";
 import { resolveMediaUrl } from "@/lib/env";
+import { SIZE_HINT_IMAGE, takeFile } from "@/lib/file-limits";
 import { parseFieldErrors } from "@/lib/use-managed-list";
 import styles from "../management.module.css";
 
@@ -100,6 +101,7 @@ export function SiteLogoPanel() {
           "No logo set"
         )}
       </div>
+      <p className={styles.fieldHint}>{`Image files only. ${SIZE_HINT_IMAGE}`}</p>
       {preview && <p className={styles.fieldHint}>Preview — not saved until you upload it.</p>}
 
       <div className={styles.rowActions}>
@@ -110,7 +112,8 @@ export function SiteLogoPanel() {
             accept="image/*"
             style={{ display: "none" }}
             onChange={(event) => {
-              const chosen = event.target.files?.[0] ?? null;
+              const chosen = takeFile(event.target, setError);
+              if (chosen === undefined) return;
               setFile(chosen);
               setPreview(chosen ? URL.createObjectURL(chosen) : null);
               event.target.value = "";

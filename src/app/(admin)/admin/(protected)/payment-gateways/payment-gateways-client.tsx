@@ -17,6 +17,7 @@ import { useDebounced } from "@/lib/use-debounced";
 import { FieldErrors, parseFieldErrors, useManagedList } from "@/lib/use-managed-list";
 import { formatDateTime } from "../_shared/buyer-cell";
 import { ReadonlyField } from "../_shared/readonly-field";
+import { SIZE_HINT_IMAGE, takeFile } from "@/lib/file-limits";
 import styles from "../management.module.css";
 
 const PAGE_SIZES = [10, 20, 50, 100];
@@ -96,10 +97,14 @@ function GatewayForm({
                 accept="image/*"
                 data-testid="gateway-icon-input"
                 style={{ display: "none" }}
-                onChange={(event) => pickIcon(event.target.files?.[0] ?? null)}
+                onChange={(event) => {
+                  const file = takeFile(event.target, setIconError);
+                  if (file !== undefined) pickIcon(file);
+                }}
               />
             </label>
           </div>
+          <p className={styles.fieldHint}>{`Image files only. ${SIZE_HINT_IMAGE}`}</p>
           {iconProblem && <p className={styles.fieldError}>{iconProblem}</p>}
         </div>
 

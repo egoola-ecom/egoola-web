@@ -19,6 +19,7 @@ import { resolveMediaUrl } from "@/lib/env";
 import { FieldErrors, parseFieldErrors, useManagedList } from "@/lib/use-managed-list";
 import { fromLocalInput, toLocalInput } from "../_shared/datetime";
 import { CategoryParentPicker } from "../catalog/category-parent-picker";
+import { SIZE_HINT_IMAGE, takeFile } from "@/lib/file-limits";
 import styles from "../management.module.css";
 
 const PLACEMENT_OPTIONS: { value: BannerPlacement; label: string }[] = [
@@ -123,13 +124,15 @@ function BannerForm({
               accept="image/*"
               style={{ display: "none" }}
               onChange={(event) => {
-                const file = event.target.files?.[0] ?? null;
+                const file = takeFile(event.target, setLocalError);
+                if (file === undefined) return;
                 setImageFile(file);
                 if (file) setPreview(URL.createObjectURL(file));
               }}
             />
           </label>
         </div>
+        <p className={`${styles.fieldHint} ${styles.formGridFull}`}>{`Image files only. ${SIZE_HINT_IMAGE}`}</p>
         {(localError || fieldErrors.image?.[0]) && (
           <p className={`${styles.fieldError} ${styles.formGridFull}`}>
             {localError ?? fieldErrors.image![0]}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { resolveMediaUrl } from "@/lib/env";
 import { MediaItem } from "@/lib/profile-fields";
+import { SIZE_HINT_ANY, takeFile } from "@/lib/file-limits";
 import styles from "../management.module.css";
 
 export interface NewDocumentRow<TFor extends string> {
@@ -29,6 +30,7 @@ export function DocumentsSection<TFor extends string>({
   onChangeNewDocuments: (rows: NewDocumentRow<TFor>[]) => void;
 }) {
   const [nextKey, setNextKey] = useState(0);
+  const [sizeErrors, setSizeErrors] = useState<Record<number, string | null>>({});
 
   return (
     <>
@@ -74,6 +76,7 @@ export function DocumentsSection<TFor extends string>({
       )}
 
       <p className={styles.sectionDivider}>Add documents</p>
+      <p className={styles.fieldHint}>{SIZE_HINT_ANY}</p>
       <div className={styles.repeatGroup}>
         {newDocuments.map((doc) => (
           <div key={doc.key} className={styles.repeatRow}>
@@ -117,16 +120,21 @@ export function DocumentsSection<TFor extends string>({
                 id={`${idPrefix}-doc-file-${doc.key}`}
                 type="file"
                 className={styles.input}
-                onChange={(event) =>
+                onChange={(event) => {
+                  const file = takeFile(event.target, (message) =>
+                    setSizeErrors((current) => ({ ...current, [doc.key]: message })),
+                  );
+                  if (file === undefined) return;
                   onChangeNewDocuments(
-                    newDocuments.map((d) =>
-                      d.key === doc.key
-                        ? { ...d, file: event.target.files?.[0] ?? null }
-                        : d,
-                    ),
-                  )
-                }
+                    newDocuments.map((d) => (d.key === doc.key ? { ...d, file } : d)),
+                  );
+                }}
               />
+              {sizeErrors[doc.key] && (
+                <p className={styles.fieldError} role="alert">
+                  {sizeErrors[doc.key]}
+                </p>
+              )}
             </div>
           </div>
         ))}
