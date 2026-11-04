@@ -10,6 +10,7 @@ import type {
   ListingStatusChangeLog,
   ListingStatusInput,
 } from "./listing-api";
+import { ENDPOINTS } from "./endpoints";
 
 // ---------------------------------------------------------------------------
 // Gig — a seller's SERVICE OFFER (catalog_type "service" + posted_by_role
@@ -165,13 +166,13 @@ export interface GigInput {
   note?: string | null;
 }
 
-const GIGS_PATH = "/catalog/gigs/";
+const GIGS = ENDPOINTS.admin.catalog.gigs;
 
 /** Filters: status, category, seller, price_type (gigs with an ACTIVE package
  * priced that way), created_from / created_to, requested_from / requested_to,
  * search (title, Bangla title, SKU code), limit / offset. */
 export function listGigs(params: URLSearchParams) {
-  return authFetch<PaginatedResponse<GigListItem>>("admin", `${GIGS_PATH}?${params}`);
+  return authFetch<PaginatedResponse<GigListItem>>("admin", `${GIGS.list}?${params}`);
 }
 
 /** The pending gig list: only `status=pending`, CURSOR-paged (no `count`).
@@ -179,7 +180,7 @@ export function listGigs(params: URLSearchParams) {
  * URL) to continue. `ordering`: `-requested_at` (default), `requested_at`,
  * `created_at`, `title`, `id`. */
 export function listGigRequests(target: URLSearchParams | string) {
-  const path = typeof target === "string" ? target : `${GIGS_PATH}requests/?${target}`;
+  const path = typeof target === "string" ? target : `${GIGS.requests}?${target}`;
   return authFetch<CursorResponse<GigListItem>>("admin", path);
 }
 
@@ -191,18 +192,18 @@ export async function countPendingGigs(): Promise<number> {
 }
 
 export function getGig(id: number) {
-  return authFetch<GigDetail>("admin", `${GIGS_PATH}${id}/`);
+  return authFetch<GigDetail>("admin", GIGS.detail(id));
 }
 
 export function createGig(input: GigInput) {
-  return authFetch<GigDetail>("admin", GIGS_PATH, {
+  return authFetch<GigDetail>("admin", GIGS.list, {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export function updateGig(id: number, input: Partial<GigInput>) {
-  return authFetch<GigDetail>("admin", `${GIGS_PATH}${id}/`, {
+  return authFetch<GigDetail>("admin", GIGS.detail(id), {
     method: "PATCH",
     body: JSON.stringify(input),
   });
@@ -214,7 +215,7 @@ export function updateGigStatus(id: number, input: ListingStatusInput) {
 }
 
 export function deleteGig(id: number) {
-  return authFetch<void>("admin", `${GIGS_PATH}${id}/`, { method: "DELETE" });
+  return authFetch<void>("admin", GIGS.detail(id), { method: "DELETE" });
 }
 
 export function bulkModerateGigs(input: {
@@ -222,7 +223,7 @@ export function bulkModerateGigs(input: {
   status: ListingBulkStatus;
   note?: string;
 }) {
-  return authFetch<ListingBulkResult>("admin", `${GIGS_PATH}bulk-moderate/`, {
+  return authFetch<ListingBulkResult>("admin", GIGS.bulkModerate, {
     method: "POST",
     body: JSON.stringify(input),
   });

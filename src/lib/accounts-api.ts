@@ -1,5 +1,6 @@
 import { authFetch } from "./auth";
 import { EducationEntry, ExperienceEntry, MediaItem } from "./profile-fields";
+import { ENDPOINTS } from "./endpoints";
 
 export interface PaginatedResponse<T> {
   count: number;
@@ -107,7 +108,7 @@ export interface AdminInput {
   media_delete_ids?: number[];
 }
 
-const ADMINS_PATH = "/accounts/admins/";
+const ADMINS = ENDPOINTS.admin.accounts.admins;
 
 /**
  * Always sent as multipart/form-data (the API accepts it for every field,
@@ -142,26 +143,26 @@ function buildAdminFormData(input: Partial<AdminInput>): FormData {
 }
 
 export function listAdmins(params: URLSearchParams) {
-  return authFetch<PaginatedResponse<AdminListItem>>("admin", `${ADMINS_PATH}?${params}`);
+  return authFetch<PaginatedResponse<AdminListItem>>("admin", `${ADMINS.list}?${params}`);
 }
 export function getAdmin(id: number) {
-  return authFetch<AdminDetail>("admin", `${ADMINS_PATH}${id}/`);
+  return authFetch<AdminDetail>("admin", ADMINS.detail(id));
 }
 export function createAdmin(input: AdminInput) {
-  return authFetch<AdminDetail>("admin", ADMINS_PATH, {
+  return authFetch<AdminDetail>("admin", ADMINS.list, {
     method: "POST",
     body: buildAdminFormData(input),
   });
 }
 /** PATCH: send only the fields that changed. */
 export function updateAdmin(id: number, input: Partial<AdminInput>) {
-  return authFetch<AdminDetail>("admin", `${ADMINS_PATH}${id}/`, {
+  return authFetch<AdminDetail>("admin", ADMINS.detail(id), {
     method: "PATCH",
     body: buildAdminFormData(input),
   });
 }
 export function deleteAdmin(id: number) {
-  return authFetch<void>("admin", `${ADMINS_PATH}${id}/`, { method: "DELETE" });
+  return authFetch<void>("admin", ADMINS.detail(id), { method: "DELETE" });
 }
 
 // ---------------------------------------------------------------------------
@@ -292,7 +293,7 @@ export interface SellerInput {
   media_delete_ids?: number[];
 }
 
-const SELLERS_PATH = "/accounts/sellers/";
+const SELLERS = ENDPOINTS.admin.accounts.sellers;
 
 function buildSellerFormData(input: SellerInput): FormData {
   const formData = new FormData();
@@ -322,25 +323,25 @@ function buildSellerFormData(input: SellerInput): FormData {
 }
 
 export function listSellers(params: URLSearchParams) {
-  return authFetch<PaginatedResponse<SellerListItem>>("admin", `${SELLERS_PATH}?${params}`);
+  return authFetch<PaginatedResponse<SellerListItem>>("admin", `${SELLERS.list}?${params}`);
 }
 export function getSeller(id: number) {
-  return authFetch<SellerDetail>("admin", `${SELLERS_PATH}${id}/`);
+  return authFetch<SellerDetail>("admin", SELLERS.detail(id));
 }
 export function createSeller(input: SellerInput) {
-  return authFetch<SellerDetail>("admin", SELLERS_PATH, {
+  return authFetch<SellerDetail>("admin", SELLERS.list, {
     method: "POST",
     body: buildSellerFormData(input),
   });
 }
 export function updateSeller(id: number, input: SellerInput) {
-  return authFetch<SellerDetail>("admin", `${SELLERS_PATH}${id}/`, {
+  return authFetch<SellerDetail>("admin", SELLERS.detail(id), {
     method: "PATCH",
     body: buildSellerFormData(input),
   });
 }
 export function deleteSeller(id: number) {
-  return authFetch<void>("admin", `${SELLERS_PATH}${id}/`, { method: "DELETE" });
+  return authFetch<void>("admin", SELLERS.detail(id), { method: "DELETE" });
 }
 
 /** Cursor-paged answer: no `count`, no page numbers — only the opaque
@@ -359,7 +360,7 @@ export type SellerRequestOrdering = "-requested_at" | "requested_at" | "name" | 
  * `next` link (full URL) to continue — a link already carries every filter. */
 export function listSellerRequests(target: URLSearchParams | string) {
   const path =
-    typeof target === "string" ? target : `${SELLERS_PATH}requests/?${target}`;
+    typeof target === "string" ? target : `${SELLERS.requests}?${target}`;
   return authFetch<CursorResponse<SellerListItem>>("admin", path);
 }
 
@@ -377,7 +378,7 @@ export async function countSellerRequests(): Promise<number> {
  * `status: "active"`. Response includes the freshly updated
  * `verification_logs`. */
 export function updateSellerReview(id: number, input: SellerReviewInput) {
-  return authFetch<SellerDetail>("admin", `${SELLERS_PATH}${id}/`, {
+  return authFetch<SellerDetail>("admin", SELLERS.detail(id), {
     method: "PATCH",
     body: JSON.stringify(input),
   });
@@ -440,7 +441,7 @@ export interface BuyerInput {
   media_delete_ids?: number[];
 }
 
-const BUYERS_PATH = "/accounts/buyers/";
+const BUYERS = ENDPOINTS.admin.accounts.buyers;
 
 function buildBuyerFormData(input: Partial<BuyerInput>): FormData {
   const formData = new FormData();
@@ -469,24 +470,24 @@ function buildBuyerFormData(input: Partial<BuyerInput>): FormData {
 }
 
 export function listBuyers(params: URLSearchParams) {
-  return authFetch<PaginatedResponse<BuyerListItem>>("admin", `${BUYERS_PATH}?${params}`);
+  return authFetch<PaginatedResponse<BuyerListItem>>("admin", `${BUYERS.list}?${params}`);
 }
 export function getBuyer(id: number) {
-  return authFetch<BuyerDetail>("admin", `${BUYERS_PATH}${id}/`);
+  return authFetch<BuyerDetail>("admin", BUYERS.detail(id));
 }
 export function createBuyer(input: BuyerInput) {
-  return authFetch<BuyerDetail>("admin", BUYERS_PATH, {
+  return authFetch<BuyerDetail>("admin", BUYERS.list, {
     method: "POST",
     body: buildBuyerFormData(input),
   });
 }
 /** PATCH: send only the fields that changed. */
 export function updateBuyer(id: number, input: Partial<BuyerInput>) {
-  return authFetch<BuyerDetail>("admin", `${BUYERS_PATH}${id}/`, {
+  return authFetch<BuyerDetail>("admin", BUYERS.detail(id), {
     method: "PATCH",
     body: buildBuyerFormData(input),
   });
 }
 export function deleteBuyer(id: number) {
-  return authFetch<void>("admin", `${BUYERS_PATH}${id}/`, { method: "DELETE" });
+  return authFetch<void>("admin", BUYERS.detail(id), { method: "DELETE" });
 }

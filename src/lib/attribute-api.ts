@@ -1,5 +1,6 @@
 import { authFetch } from "./auth";
 import { PaginatedResponse } from "./accounts-api";
+import { ENDPOINTS } from "./endpoints";
 
 // ---------------------------------------------------------------------------
 // Attributes and attribute values — the "kinds of option" (Size, Colour…) and
@@ -66,11 +67,11 @@ export interface AttributeValueInput {
   is_active?: boolean;
 }
 
-const ATTRIBUTES_PATH = "/catalog/attributes/";
-const VALUES_PATH = "/catalog/attribute-values/";
+const ATTRIBUTES = ENDPOINTS.admin.catalog.attributes;
+const VALUES = ENDPOINTS.admin.catalog.attributeValues;
 
 export function listAttributes(params: URLSearchParams) {
-  return authFetch<PaginatedResponse<AttributeItem>>("admin", `${ATTRIBUTES_PATH}?${params}`);
+  return authFetch<PaginatedResponse<AttributeItem>>("admin", `${ATTRIBUTES.list}?${params}`);
 }
 
 /** Every attribute (optionally only active ones) with its values, following
@@ -89,45 +90,45 @@ export async function listAllAttributes(activeOnly = false): Promise<AttributeIt
 }
 
 export function getAttribute(id: number) {
-  return authFetch<AttributeItem>("admin", `${ATTRIBUTES_PATH}${id}/`);
+  return authFetch<AttributeItem>("admin", ATTRIBUTES.detail(id));
 }
 
 export function createAttribute(input: AttributeInput) {
-  return authFetch<AttributeItem>("admin", ATTRIBUTES_PATH, {
+  return authFetch<AttributeItem>("admin", ATTRIBUTES.list, {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export function updateAttribute(id: number, input: Partial<AttributeInput>) {
-  return authFetch<AttributeItem>("admin", `${ATTRIBUTES_PATH}${id}/`, {
+  return authFetch<AttributeItem>("admin", ATTRIBUTES.detail(id), {
     method: "PATCH",
     body: JSON.stringify(input),
   });
 }
 
 export function deleteAttribute(id: number) {
-  return authFetch<void>("admin", `${ATTRIBUTES_PATH}${id}/`, { method: "DELETE" });
+  return authFetch<void>("admin", ATTRIBUTES.detail(id), { method: "DELETE" });
 }
 
 export function listAttributeValues(params: URLSearchParams) {
-  return authFetch<PaginatedResponse<AttributeValueItem>>("admin", `${VALUES_PATH}?${params}`);
+  return authFetch<PaginatedResponse<AttributeValueItem>>("admin", `${VALUES.list}?${params}`);
 }
 
 export function createAttributeValue(input: AttributeValueInput & { attribute: number }) {
-  return authFetch<AttributeValueItem>("admin", VALUES_PATH, {
+  return authFetch<AttributeValueItem>("admin", VALUES.list, {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export function updateAttributeValue(id: number, input: Partial<AttributeValueInput>) {
-  return authFetch<AttributeValueItem>("admin", `${VALUES_PATH}${id}/`, {
+  return authFetch<AttributeValueItem>("admin", VALUES.detail(id), {
     method: "PATCH",
     body: JSON.stringify(input),
   });
 }
 
 export function deleteAttributeValue(id: number) {
-  return authFetch<void>("admin", `${VALUES_PATH}${id}/`, { method: "DELETE" });
+  return authFetch<void>("admin", VALUES.detail(id), { method: "DELETE" });
 }

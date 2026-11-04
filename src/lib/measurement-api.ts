@@ -1,5 +1,6 @@
 import { authFetch } from "./auth";
 import { PaginatedResponse } from "./accounts-api";
+import { ENDPOINTS } from "./endpoints";
 
 // ---------------------------------------------------------------------------
 // Measurement — flat reference data (units like Kilogram/kg, Litre/L) used
@@ -21,12 +22,12 @@ export interface MeasurementInput {
   symbol: string;
 }
 
-const MEASUREMENTS_PATH = "/catalog/measurements/";
+const MEASUREMENTS = ENDPOINTS.admin.catalog.measurements;
 
 export function listMeasurements(params: URLSearchParams) {
   return authFetch<PaginatedResponse<MeasurementItem>>(
     "admin",
-    `${MEASUREMENTS_PATH}?${params}`,
+    `${MEASUREMENTS.list}?${params}`,
   );
 }
 
@@ -46,19 +47,19 @@ export async function listAllMeasurements(): Promise<MeasurementItem[]> {
 }
 
 export function createMeasurement(input: MeasurementInput) {
-  return authFetch<MeasurementItem>("admin", MEASUREMENTS_PATH, {
+  return authFetch<MeasurementItem>("admin", MEASUREMENTS.list, {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export function updateMeasurement(id: number, input: MeasurementInput) {
-  return authFetch<MeasurementItem>("admin", `${MEASUREMENTS_PATH}${id}/`, {
+  return authFetch<MeasurementItem>("admin", MEASUREMENTS.detail(id), {
     method: "PATCH",
     body: JSON.stringify(input),
   });
 }
 
 export function deleteMeasurement(id: number) {
-  return authFetch<void>("admin", `${MEASUREMENTS_PATH}${id}/`, { method: "DELETE" });
+  return authFetch<void>("admin", MEASUREMENTS.detail(id), { method: "DELETE" });
 }

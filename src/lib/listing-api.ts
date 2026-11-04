@@ -1,5 +1,6 @@
 import { authFetch } from "./auth";
 import { CursorResponse, PaginatedResponse } from "./accounts-api";
+import { ENDPOINTS } from "./endpoints";
 
 // ---------------------------------------------------------------------------
 // Listing — the PRODUCT side of the listings table: every product format
@@ -276,14 +277,14 @@ export interface ListingBulkResult {
   skipped: number[];
 }
 
-const LISTINGS_PATH = "/catalog/listings/";
+const LISTINGS = ENDPOINTS.admin.catalog.listings;
 
 /** The products list. Buyer job requests share this endpoint, so the list is
  * always narrowed to `catalog_type=product` — a job never shows up here. */
 export function listListings(params: URLSearchParams) {
   const query = new URLSearchParams(params);
   query.set("catalog_type", "product");
-  return authFetch<PaginatedResponse<ListingListItem>>("admin", `${LISTINGS_PATH}?${query}`);
+  return authFetch<PaginatedResponse<ListingListItem>>("admin", `${LISTINGS.list}?${query}`);
 }
 
 /** The admin's pending list: only `status=pending`, CURSOR-paged (no `count`).
@@ -298,7 +299,7 @@ export function listListingRequests(target: URLSearchParams | string) {
   } else {
     const query = new URLSearchParams(target);
     query.set("catalog_type", "product");
-    path = `${LISTINGS_PATH}requests/?${query}`;
+    path = `${LISTINGS.requests}?${query}`;
   }
   return authFetch<CursorResponse<ListingListItem>>("admin", path);
 }
@@ -312,18 +313,18 @@ export async function countPendingListings(): Promise<number> {
 }
 
 export function getListing(id: number) {
-  return authFetch<ListingDetail>("admin", `${LISTINGS_PATH}${id}/`);
+  return authFetch<ListingDetail>("admin", LISTINGS.detail(id));
 }
 
 export function createListing(input: ListingInput) {
-  return authFetch<ListingDetail>("admin", LISTINGS_PATH, {
+  return authFetch<ListingDetail>("admin", LISTINGS.list, {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export function updateListing(id: number, input: Partial<ListingInput>) {
-  return authFetch<ListingDetail>("admin", `${LISTINGS_PATH}${id}/`, {
+  return authFetch<ListingDetail>("admin", LISTINGS.detail(id), {
     method: "PATCH",
     body: JSON.stringify(input),
   });
@@ -335,7 +336,7 @@ export function updateListingStatus(id: number, input: ListingStatusInput) {
 }
 
 export function deleteListing(id: number) {
-  return authFetch<void>("admin", `${LISTINGS_PATH}${id}/`, { method: "DELETE" });
+  return authFetch<void>("admin", LISTINGS.detail(id), { method: "DELETE" });
 }
 
 export function bulkModerateListings(input: {
@@ -343,7 +344,7 @@ export function bulkModerateListings(input: {
   status: ListingBulkStatus;
   note?: string;
 }) {
-  return authFetch<ListingBulkResult>("admin", `${LISTINGS_PATH}bulk-moderate/`, {
+  return authFetch<ListingBulkResult>("admin", LISTINGS.bulkModerate, {
     method: "POST",
     body: JSON.stringify(input),
   });

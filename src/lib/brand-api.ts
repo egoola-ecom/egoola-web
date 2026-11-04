@@ -1,5 +1,6 @@
 import { authFetch } from "./auth";
 import { PaginatedResponse } from "./accounts-api";
+import { ENDPOINTS } from "./endpoints";
 
 // ---------------------------------------------------------------------------
 // Brand — flat reference list that listings pick from (docs/listing-module-
@@ -25,10 +26,10 @@ export interface BrandInput {
   is_active: boolean;
 }
 
-const BRANDS_PATH = "/catalog/brands/";
+const BRANDS = ENDPOINTS.admin.catalog.brands;
 
 export function listBrands(params: URLSearchParams) {
-  return authFetch<PaginatedResponse<BrandItem>>("admin", `${BRANDS_PATH}?${params}`);
+  return authFetch<PaginatedResponse<BrandItem>>("admin", `${BRANDS.list}?${params}`);
 }
 
 /** Every brand (optionally only active ones), following `next` pages — for
@@ -48,19 +49,19 @@ export async function listAllBrands(activeOnly = false): Promise<BrandItem[]> {
 }
 
 export function createBrand(input: BrandInput) {
-  return authFetch<BrandItem>("admin", BRANDS_PATH, {
+  return authFetch<BrandItem>("admin", BRANDS.list, {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export function updateBrand(id: number, input: BrandInput) {
-  return authFetch<BrandItem>("admin", `${BRANDS_PATH}${id}/`, {
+  return authFetch<BrandItem>("admin", BRANDS.detail(id), {
     method: "PATCH",
     body: JSON.stringify(input),
   });
 }
 
 export function deleteBrand(id: number) {
-  return authFetch<void>("admin", `${BRANDS_PATH}${id}/`, { method: "DELETE" });
+  return authFetch<void>("admin", BRANDS.detail(id), { method: "DELETE" });
 }

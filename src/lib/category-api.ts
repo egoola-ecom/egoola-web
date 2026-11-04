@@ -1,5 +1,6 @@
 import { authFetch } from "./auth";
 import { PaginatedResponse } from "./accounts-api";
+import { ENDPOINTS } from "./endpoints";
 
 // ---------------------------------------------------------------------------
 // Category — a single self-referencing tree shared by both product and
@@ -41,10 +42,10 @@ export interface CategoryInput {
   image?: File | null;
 }
 
-const CATEGORIES_PATH = "/catalog/categories/";
+const CATEGORIES = ENDPOINTS.admin.catalog.categories;
 
 export function listCategories(params: URLSearchParams) {
-  return authFetch<PaginatedResponse<CategoryItem>>("admin", `${CATEGORIES_PATH}?${params}`);
+  return authFetch<PaginatedResponse<CategoryItem>>("admin", `${CATEGORIES.list}?${params}`);
 }
 
 export interface CategoryParentChainItem extends CategoryBrief {
@@ -62,7 +63,7 @@ export function getCategoryParentChain(categoryIds: number[]) {
   const params = new URLSearchParams({ categoryIds: categoryIds.join(",") });
   return authFetch<CategoryParentChainItem[]>(
     "admin",
-    `${CATEGORIES_PATH}parent-chain/?${params}`,
+    `${CATEGORIES.parentChain}?${params}`,
   );
 }
 
@@ -78,7 +79,7 @@ export function getCategoryTree(filters: { type?: CategoryType; categoryName?: s
   const params = new URLSearchParams();
   if (filters.type) params.set("type", filters.type);
   if (filters.categoryName) params.set("categoryName", filters.categoryName);
-  return authFetch<CategoryTreeNode[]>("admin", `${CATEGORIES_PATH}tree/?${params}`);
+  return authFetch<CategoryTreeNode[]>("admin", `${CATEGORIES.tree}?${params}`);
 }
 
 /** Always sent as multipart/form-data (the API accepts it for every field,
@@ -97,19 +98,19 @@ function buildCategoryFormData(input: CategoryInput): FormData {
 }
 
 export function createCategory(input: CategoryInput) {
-  return authFetch<CategoryItem>("admin", CATEGORIES_PATH, {
+  return authFetch<CategoryItem>("admin", CATEGORIES.list, {
     method: "POST",
     body: buildCategoryFormData(input),
   });
 }
 
 export function updateCategory(id: number, input: CategoryInput) {
-  return authFetch<CategoryItem>("admin", `${CATEGORIES_PATH}${id}/`, {
+  return authFetch<CategoryItem>("admin", CATEGORIES.detail(id), {
     method: "PATCH",
     body: buildCategoryFormData(input),
   });
 }
 
 export function deleteCategory(id: number) {
-  return authFetch<void>("admin", `${CATEGORIES_PATH}${id}/`, { method: "DELETE" });
+  return authFetch<void>("admin", CATEGORIES.detail(id), { method: "DELETE" });
 }
