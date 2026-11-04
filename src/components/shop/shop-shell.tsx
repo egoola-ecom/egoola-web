@@ -211,6 +211,7 @@ export function ShopShell({ children }: { children: React.ReactNode }) {
               ]),
           { href: SHOP.favourites, icon: "fas fa-heart", label: "Favourite" },
           { href: session ? SHOP.jobs : SHOP.login, icon: "fas fa-briefcase", label: "My Jobs" },
+          { href: session ? SHOP.addresses : SHOP.login, icon: "fas fa-map-marker-alt", label: "My Addresses" },
           { href: SHOP.cart, icon: "fas fa-shopping-cart", label: cartCount > 0 ? `Cart (${cartCount})` : "Cart" },
         ]} />
         <SideCard title="Tutorial" onNavigate={closeAll} options={[

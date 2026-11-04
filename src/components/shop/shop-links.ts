@@ -13,6 +13,7 @@ export const SHOP = {
   newJob: "/buyer/jobs/new",
   job: (id: number) => `/buyer/jobs/${id}`,
   editJob: (id: number) => `/buyer/jobs/${id}/edit`,
+  addresses: "/buyer/addresses",
   profile: "/buyer/profile",
   login: "/login",
   categories: "/buyer/categories",
