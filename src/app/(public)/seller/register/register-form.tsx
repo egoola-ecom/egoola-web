@@ -1,5 +1,6 @@
 "use client";
 
+import { SIZE_HINT_IMAGE, takeFile } from "@/lib/file-limits";
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { BusinessProfileFields, BUSINESS_ERROR_KEYS, readBusinessInfo } from "@/components/seller-form/business-profile-fields";
@@ -50,6 +51,7 @@ export function RegisterForm() {
   const [sameAddress, setSameAddress] = useState(false);
 
   const [profilePic, setProfilePic] = useState<File | null>(null);
+  const [picSizeError, setPicSizeError] = useState<string | null>(null);
   const [businessOpen, setBusinessOpen] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
@@ -337,8 +339,8 @@ export function RegisterForm() {
           Identity documents<span className={styles.required}>*</span>
         </h2>
         <p className={styles.sectionHint}>
-          Upload at least one NID. If it has a front and a back, add both. JPG, PNG, WEBP or PDF,
-          5 MB or smaller each, up to {REGISTER_MAX_FILES} files.
+          Upload at least one NID. If it has a front and a back, add both. JPG, PNG, WEBP or PDF.
+          Images up to 2 MB, PDFs up to 30 MB, up to {REGISTER_MAX_FILES} files.
         </p>
         <DocumentRows docs={docs} />
         {err("media_for") && (
@@ -356,14 +358,22 @@ export function RegisterForm() {
       {/* ------------------------------------------------ Profile photo */}
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Profile photo (optional)</h2>
-        <p className={styles.sectionHint}>A clear photo of you. JPG, PNG or WEBP, 5 MB or smaller.</p>
+        <p className={styles.sectionHint}>A clear photo of you. JPG, PNG or WEBP. {SIZE_HINT_IMAGE}</p>
         <input
           type="file"
           className={styles.fileInput}
           aria-label="Profile photo"
           accept={FILE_IMAGE_ACCEPT}
-          onChange={(event) => setProfilePic(event.target.files?.[0] ?? null)}
+          onChange={(event) => {
+            const file = takeFile(event.target, setPicSizeError);
+            if (file !== undefined) setProfilePic(file);
+          }}
         />
+        {picSizeError && (
+          <p className={styles.fieldError} role="alert">
+            {picSizeError}
+          </p>
+        )}
         {err("profile_pic") && (
           <p className={styles.fieldError} role="alert">
             {err("profile_pic")}

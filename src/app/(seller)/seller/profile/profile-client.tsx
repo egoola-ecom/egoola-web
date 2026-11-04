@@ -1,5 +1,6 @@
 "use client";
 
+import { SIZE_HINT_IMAGE, takeFile } from "@/lib/file-limits";
 import { useState } from "react";
 import {
   BUSINESS_ERROR_KEYS,
@@ -85,6 +86,7 @@ function ProfileDetails({
   const [education, setEducation] = useState<EducationEntry[]>(me.education ?? []);
   const [experience, setExperience] = useState<ExperienceEntry[]>(me.experience ?? []);
   const [photo, setPhoto] = useState<File | null>(null);
+  const [photoSizeError, setPhotoSizeError] = useState<string | null>(null);
   const [businessOpen, setBusinessOpen] = useState(Boolean(me.business_info));
 
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -257,15 +259,23 @@ function ProfileDetails({
           )}
           <div>
             <label htmlFor="sp-photo" className={styles.sectionHint} style={{ display: "block" }}>
-              Profile photo. JPG, PNG or WEBP, 5 MB or smaller.
+              Profile photo. JPG, PNG or WEBP. {SIZE_HINT_IMAGE}
             </label>
             <input
               id="sp-photo"
               type="file"
               className={styles.fileInput}
               accept={IMAGE_ACCEPT}
-              onChange={(event) => setPhoto(event.target.files?.[0] ?? null)}
+              onChange={(event) => {
+                const file = takeFile(event.target, setPhotoSizeError);
+                if (file !== undefined) setPhoto(file);
+              }}
             />
+            {photoSizeError && (
+              <p className={styles.fieldError} role="alert">
+                {photoSizeError}
+              </p>
+            )}
             {err("profile_pic") && (
               <p className={styles.fieldError} role="alert">
                 {err("profile_pic")}
@@ -493,7 +503,7 @@ function DocumentsCard() {
     <div className={styles.card} style={{ marginTop: "1.25rem" }}>
       <h2 className={styles.sectionTitle}>Documents</h2>
       <p className={styles.sectionHint}>
-        JPG, PNG, WEBP or PDF, 5 MB or smaller each, up to {REGISTER_MAX_FILES} files at a time.
+        JPG, PNG, WEBP or PDF. Images up to 2 MB, PDFs up to 30 MB, up to {REGISTER_MAX_FILES} files at a time.
         Keep at least one NID.
       </p>
 

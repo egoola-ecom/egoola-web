@@ -9,8 +9,9 @@ import styles from "@/components/seller-form/seller-form.module.css";
 import { EyeIcon } from "@/components/eye-icon";
 import { ApiError } from "@/lib/api";
 import { getSession } from "@/lib/auth";
-import { PROFILE_PIC_MAX_BYTES, PROFILE_PIC_TYPES, registerBuyer } from "@/lib/buyer/buyer-auth-api";
+import { PROFILE_PIC_TYPES, registerBuyer } from "@/lib/buyer/buyer-auth-api";
 import { loginUrlFor, safeBuyerNext } from "@/lib/buyer/login-redirect";
+import { fileSizeProblem, SIZE_HINT_IMAGE, takeFile } from "@/lib/file-limits";
 import { publicGeographyLoaders } from "@/lib/geography-api";
 import { useGeographySelection } from "@/lib/use-geography-selection";
 import { FieldErrors, parseFieldErrors } from "@/lib/use-managed-list";
@@ -53,6 +54,7 @@ export function RegisterForm({ next }: { next?: string }) {
 
   const [showPassword, setShowPassword] = useState(false);
   const [profilePic, setProfilePic] = useState<File | null>(null);
+  const [picSizeError, setPicSizeError] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -91,8 +93,8 @@ export function RegisterForm({ next }: { next?: string }) {
     if (profilePic) {
       if (!PROFILE_PIC_TYPES.includes(profilePic.type)) {
         problems.profile_pic = [`${profilePic.name}: only JPG, PNG or WEBP files are accepted.`];
-      } else if (profilePic.size > PROFILE_PIC_MAX_BYTES) {
-        problems.profile_pic = [`${profilePic.name}: the photo must be 5 MB or smaller.`];
+      } else if (fileSizeProblem(profilePic)) {
+        problems.profile_pic = [fileSizeProblem(profilePic) as string];
       }
     }
     if (Object.keys(problems).length > 0) {
@@ -254,13 +256,16 @@ export function RegisterForm({ next }: { next?: string }) {
           </summary>
           <div className={styles.businessBody}>
             <div className={styles.grid}>
-              <Field id="reg-pic" label="Profile photo" full error={err("profile_pic")} note="JPG, PNG or WEBP, 5 MB or smaller.">
+              <Field id="reg-pic" label="Profile photo" full error={picSizeError ?? err("profile_pic")} note={`JPG, PNG or WEBP. ${SIZE_HINT_IMAGE}`}>
                 <input
                   id="reg-pic"
                   type="file"
                   className={styles.fileInput}
                   accept={IMAGE_ACCEPT}
-                  onChange={(event) => setProfilePic(event.target.files?.[0] ?? null)}
+                  onChange={(event) => {
+                    const file = takeFile(event.target, setPicSizeError);
+                    if (file !== undefined) setProfilePic(file);
+                  }}
                 />
               </Field>
               <Field id="reg-description" label="About you" full error={err("description")}>

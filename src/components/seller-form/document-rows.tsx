@@ -4,9 +4,9 @@ import { useRef, useState } from "react";
 import {
   REGISTER_DOCUMENT_TYPES,
   REGISTER_MAX_FILES,
-  REGISTER_MAX_FILE_BYTES,
   RegisterMediaFor,
 } from "@/lib/seller-register-api";
+import { fileSizeProblem, formatSize } from "@/lib/file-limits";
 import styles from "./seller-form.module.css";
 import login from "@/app/(public)/login/login.module.css";
 
@@ -29,11 +29,7 @@ export interface DocRow {
   file: File | null;
 }
 
-export function formatSize(bytes: number): string {
-  return bytes >= 1024 * 1024
-    ? `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-    : `${Math.max(1, Math.round(bytes / 1024))} KB`;
-}
+export { formatSize };
 
 /** The first reason a file cannot be sent, or null when it is fine. The server
  * checks the same rules and stays the authority. */
@@ -41,10 +37,7 @@ export function fileProblem(file: File, allowed: string[], allowedText: string):
   if (!allowed.includes(file.type)) {
     return `${file.name}: only ${allowedText} files are accepted.`;
   }
-  if (file.size > REGISTER_MAX_FILE_BYTES) {
-    return `${file.name}: each file must be 5 MB or smaller.`;
-  }
-  return null;
+  return fileSizeProblem(file);
 }
 
 function without(record: Record<number, string>, id: number): Record<number, string> {
@@ -69,6 +62,19 @@ export function useDocumentRows(
   function update(id: number, patch: Partial<DocRow>) {
     setRows((current) => current.map((row) => (row.id === id ? { ...row, ...patch } : row)));
     setErrors((current) => without(current, id));
+  }
+
+  /** A file is taken only when its type and size are fine; otherwise the row
+   * keeps no file and shows why, at once. Returns whether it was taken. */
+  function pick(id: number, file: File | null): boolean {
+    const problem = file ? fileProblem(file, REGISTER_DOCUMENT_TYPES, "JPG, PNG, WEBP or PDF") : null;
+    if (!problem) {
+      update(id, { file });
+      return true;
+    }
+    setRows((current) => current.map((row) => (row.id === id ? { ...row, file: null } : row)));
+    setErrors((current) => ({ ...current, [id]: problem }));
+    return false;
   }
 
   function add(mediaFor?: RegisterMediaFor) {
@@ -107,7 +113,7 @@ export function useDocumentRows(
     return Object.keys(problems).length === 0;
   }
 
-  return { rows, errors, kinds, update, add, remove, reset, validate };
+  return { rows, errors, kinds, update, pick, add, remove, reset, validate };
 }
 
 /** The rows themselves: a kind dropdown, a file picker and a Remove button. */
@@ -147,7 +153,9 @@ export function DocumentRows({
                 className={styles.fileInput}
                 aria-label={`Document ${index + 1} file`}
                 accept={FILE_ACCEPT}
-                onChange={(event) => docs.update(row.id, { file: event.target.files?.[0] ?? null })}
+                onChange={(event) => {
+                  if (!docs.pick(row.id, event.target.files?.[0] ?? null)) event.target.value = "";
+                }}
               />
               {row.file && (
                 <p className={styles.fileMeta}>

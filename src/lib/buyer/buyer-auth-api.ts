@@ -38,7 +38,6 @@ export interface BuyerRegisterResult {
 }
 
 export const PROFILE_PIC_TYPES = ["image/jpeg", "image/png", "image/webp"];
-export const PROFILE_PIC_MAX_BYTES = 5 * 1024 * 1024;
 
 const LIST_KEYS = ["skills", "experiences", "interests", "educations"] as const;
 const NUMBER_KEYS = ["country", "state", "city", "thana"] as const;
