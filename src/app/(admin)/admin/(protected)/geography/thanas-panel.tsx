@@ -20,6 +20,7 @@ import { useGeographySelection } from "@/lib/use-geography-selection";
 import { FieldErrors, parseFieldErrors, useManagedList } from "@/lib/use-managed-list";
 import { GeographyFields } from "../_shared/geography-fields";
 import { ReadonlyField } from "../_shared/readonly-field";
+import { DeleteDialog } from "./delete-dialog";
 import styles from "../management.module.css";
 
 function ThanaForm({
@@ -73,8 +74,13 @@ function ThanaForm({
         </div>
 
         <GeographyFields geo={geo} upTo="city" />
-        {fieldErrors.city?.[0] && (
-          <p className={`${styles.fieldError} ${styles.formGridFull}`}>{fieldErrors.city[0]}</p>
+        {(["country", "state", "city"] as const).map(
+          (key) =>
+            fieldErrors[key]?.[0] && (
+              <p key={key} className={`${styles.fieldError} ${styles.formGridFull}`}>
+                {fieldErrors[key][0]}
+              </p>
+            ),
         )}
 
         {initial && (
@@ -162,6 +168,7 @@ export function ThanasPanel() {
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<ThanaItem | null>(null);
 
   function handleAuthError(err: unknown): boolean {
     if (err instanceof AuthError) {
@@ -172,17 +179,6 @@ export function ThanasPanel() {
     return false;
   }
 
-  async function handleDeleteClick(item: ThanaItem) {
-    if (!window.confirm(`Delete thana "${item.name}"? This cannot be undone.`)) return;
-    try {
-      await deleteThana(item.id);
-      refetch();
-    } catch (err) {
-      if (!handleAuthError(err)) {
-        window.alert("Couldn't delete this thana. Please try again.");
-      }
-    }
-  }
 
   async function handleFormSubmit(input: ThanaInput) {
     setSubmitting(true);
@@ -223,6 +219,7 @@ export function ThanasPanel() {
           />
           <select
             className={styles.filterSelect}
+            aria-label="Filter by country"
             value={countryFilter}
             onChange={(event) => {
               setCountryFilter(event.target.value);
@@ -239,6 +236,7 @@ export function ThanasPanel() {
           </select>
           <select
             className={styles.filterSelect}
+            aria-label="Filter by state"
             value={stateFilter}
             disabled={!countryFilter}
             onChange={(event) => {
@@ -255,6 +253,7 @@ export function ThanasPanel() {
           </select>
           <select
             className={styles.filterSelect}
+            aria-label="Filter by city"
             value={cityFilter}
             disabled={!stateFilter}
             onChange={(event) => setCityFilter(event.target.value)}
@@ -333,7 +332,7 @@ export function ThanasPanel() {
                       <button
                         type="button"
                         className={`${styles.actionButton} ${styles.actionButtonDanger}`}
-                        onClick={() => handleDeleteClick(item)}
+                        onClick={() => setDeleting(item)}
                       >
                         Delete
                       </button>
@@ -369,6 +368,20 @@ export function ThanasPanel() {
           </button>
         </div>
       </div>
+
+      {deleting && (
+        <DeleteDialog
+          noun="thana"
+          name={deleting.name}
+          warning=""
+          onDelete={async () => {
+            await deleteThana(deleting.id);
+            refetch();
+          }}
+          onAuthError={handleAuthError}
+          onClose={() => setDeleting(null)}
+        />
+      )}
 
       {modalMode && (
         <Modal

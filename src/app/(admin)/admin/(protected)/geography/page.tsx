@@ -1,7 +1,14 @@
-import { GeographyClient } from "./geography-client";
+import { GeographyClient, type GeographyTabKey } from "./geography-client";
 
 export const metadata = { title: "Geography" };
 
-export default function GeographyPage() {
-  return <GeographyClient />;
+const TABS: GeographyTabKey[] = ["countries", "states", "cities", "thanas"];
+
+export default async function GeographyPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const { tab } = await searchParams;
+  return <GeographyClient initialTab={TABS.find((key) => key === tab)} />;
 }

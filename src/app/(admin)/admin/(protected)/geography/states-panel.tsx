@@ -18,6 +18,7 @@ import { useGeographySelection } from "@/lib/use-geography-selection";
 import { FieldErrors, parseFieldErrors, useManagedList } from "@/lib/use-managed-list";
 import { GeographyFields } from "../_shared/geography-fields";
 import { ReadonlyField } from "../_shared/readonly-field";
+import { DeleteDialog } from "./delete-dialog";
 import styles from "../management.module.css";
 
 function StateForm({
@@ -115,6 +116,7 @@ export function StatesPanel() {
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<StateItem | null>(null);
 
   function handleAuthError(err: unknown): boolean {
     if (err instanceof AuthError) {
@@ -125,17 +127,6 @@ export function StatesPanel() {
     return false;
   }
 
-  async function handleDeleteClick(item: StateItem) {
-    if (!window.confirm(`Delete state "${item.name}"? Every city and thana under it is deleted too. This cannot be undone.`)) return;
-    try {
-      await deleteState(item.id);
-      refetch();
-    } catch (err) {
-      if (!handleAuthError(err)) {
-        window.alert("Couldn't delete this state. Please try again.");
-      }
-    }
-  }
 
   async function handleFormSubmit(input: StateInput) {
     setSubmitting(true);
@@ -176,6 +167,7 @@ export function StatesPanel() {
           />
           <select
             className={styles.filterSelect}
+            aria-label="Filter by country"
             value={countryFilter}
             onChange={(event) => setCountryFilter(event.target.value)}
           >
@@ -249,7 +241,7 @@ export function StatesPanel() {
                       <button
                         type="button"
                         className={`${styles.actionButton} ${styles.actionButtonDanger}`}
-                        onClick={() => handleDeleteClick(item)}
+                        onClick={() => setDeleting(item)}
                       >
                         Delete
                       </button>
@@ -285,6 +277,20 @@ export function StatesPanel() {
           </button>
         </div>
       </div>
+
+      {deleting && (
+        <DeleteDialog
+          noun="state"
+          name={deleting.name}
+          warning="Every city and thana under it is deleted too."
+          onDelete={async () => {
+            await deleteState(deleting.id);
+            refetch();
+          }}
+          onAuthError={handleAuthError}
+          onClose={() => setDeleting(null)}
+        />
+      )}
 
       {modalMode && (
         <Modal

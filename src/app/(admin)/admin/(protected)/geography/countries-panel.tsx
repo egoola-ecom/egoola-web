@@ -14,6 +14,7 @@ import {
 import { AuthError, clearSession } from "@/lib/auth";
 import { FieldErrors, parseFieldErrors, useManagedList } from "@/lib/use-managed-list";
 import { ReadonlyField } from "../_shared/readonly-field";
+import { DeleteDialog } from "./delete-dialog";
 import styles from "../management.module.css";
 
 function CountryForm({
@@ -96,6 +97,7 @@ export function CountriesPanel() {
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<CountryItem | null>(null);
 
   function handleAuthError(err: unknown): boolean {
     if (err instanceof AuthError) {
@@ -106,17 +108,6 @@ export function CountriesPanel() {
     return false;
   }
 
-  async function handleDeleteClick(item: CountryItem) {
-    if (!window.confirm(`Delete country "${item.name}"? Every state, city and thana under it is deleted too. This cannot be undone.`)) return;
-    try {
-      await deleteCountry(item.id);
-      refetch();
-    } catch (err) {
-      if (!handleAuthError(err)) {
-        window.alert("Couldn't delete this country. Please try again.");
-      }
-    }
-  }
 
   async function handleFormSubmit(input: CountryInput) {
     setSubmitting(true);
@@ -218,7 +209,7 @@ export function CountriesPanel() {
                       <button
                         type="button"
                         className={`${styles.actionButton} ${styles.actionButtonDanger}`}
-                        onClick={() => handleDeleteClick(item)}
+                        onClick={() => setDeleting(item)}
                       >
                         Delete
                       </button>
@@ -254,6 +245,20 @@ export function CountriesPanel() {
           </button>
         </div>
       </div>
+
+      {deleting && (
+        <DeleteDialog
+          noun="country"
+          name={deleting.name}
+          warning="Every state, city and thana under it is deleted too."
+          onDelete={async () => {
+            await deleteCountry(deleting.id);
+            refetch();
+          }}
+          onAuthError={handleAuthError}
+          onClose={() => setDeleting(null)}
+        />
+      )}
 
       {modalMode && (
         <Modal

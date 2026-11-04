@@ -14,10 +14,17 @@ const TABS = [
   { key: "thanas", label: "Thanas" },
 ] as const;
 
-type TabKey = (typeof TABS)[number]["key"];
+export type GeographyTabKey = (typeof TABS)[number]["key"];
+type TabKey = GeographyTabKey;
 
-export function GeographyClient() {
-  const [tab, setTab] = useState<TabKey>("countries");
+export function GeographyClient({ initialTab = "countries" }: { initialTab?: GeographyTabKey }) {
+  const [tab, setTab] = useState<TabKey>(initialTab);
+
+  // Keep the tab in the address, so a reload or a shared link opens the same one.
+  function openTab(key: TabKey) {
+    setTab(key);
+    window.history.replaceState(null, "", key === "countries" ? "/admin/geography" : `/admin/geography?tab=${key}`);
+  }
 
   return (
     <div>
@@ -37,7 +44,7 @@ export function GeographyClient() {
             key={item.key}
             type="button"
             className={`${styles.tab} ${tab === item.key ? styles.tabActive : ""}`}
-            onClick={() => setTab(item.key)}
+            onClick={() => openTab(item.key)}
           >
             {item.label}
           </button>

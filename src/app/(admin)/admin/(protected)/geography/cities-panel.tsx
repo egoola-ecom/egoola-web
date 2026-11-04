@@ -19,6 +19,7 @@ import { useGeographySelection } from "@/lib/use-geography-selection";
 import { FieldErrors, parseFieldErrors, useManagedList } from "@/lib/use-managed-list";
 import { GeographyFields } from "../_shared/geography-fields";
 import { ReadonlyField } from "../_shared/readonly-field";
+import { DeleteDialog } from "./delete-dialog";
 import styles from "../management.module.css";
 
 function CityForm({
@@ -70,8 +71,13 @@ function CityForm({
         </div>
 
         <GeographyFields geo={geo} upTo="state" />
-        {fieldErrors.state?.[0] && (
-          <p className={`${styles.fieldError} ${styles.formGridFull}`}>{fieldErrors.state[0]}</p>
+        {(["country", "state"] as const).map(
+          (key) =>
+            fieldErrors[key]?.[0] && (
+              <p key={key} className={`${styles.fieldError} ${styles.formGridFull}`}>
+                {fieldErrors[key][0]}
+              </p>
+            ),
         )}
 
         {initial && (
@@ -141,6 +147,7 @@ export function CitiesPanel() {
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<CityItem | null>(null);
 
   function handleAuthError(err: unknown): boolean {
     if (err instanceof AuthError) {
@@ -151,17 +158,6 @@ export function CitiesPanel() {
     return false;
   }
 
-  async function handleDeleteClick(item: CityItem) {
-    if (!window.confirm(`Delete city "${item.name}"? Every thana under it is deleted too. This cannot be undone.`)) return;
-    try {
-      await deleteCity(item.id);
-      refetch();
-    } catch (err) {
-      if (!handleAuthError(err)) {
-        window.alert("Couldn't delete this city. Please try again.");
-      }
-    }
-  }
 
   async function handleFormSubmit(input: CityInput) {
     setSubmitting(true);
@@ -202,6 +198,7 @@ export function CitiesPanel() {
           />
           <select
             className={styles.filterSelect}
+            aria-label="Filter by country"
             value={countryFilter}
             onChange={(event) => {
               setCountryFilter(event.target.value);
@@ -217,6 +214,7 @@ export function CitiesPanel() {
           </select>
           <select
             className={styles.filterSelect}
+            aria-label="Filter by state"
             value={stateFilter}
             disabled={!countryFilter}
             onChange={(event) => setStateFilter(event.target.value)}
@@ -293,7 +291,7 @@ export function CitiesPanel() {
                       <button
                         type="button"
                         className={`${styles.actionButton} ${styles.actionButtonDanger}`}
-                        onClick={() => handleDeleteClick(item)}
+                        onClick={() => setDeleting(item)}
                       >
                         Delete
                       </button>
@@ -329,6 +327,20 @@ export function CitiesPanel() {
           </button>
         </div>
       </div>
+
+      {deleting && (
+        <DeleteDialog
+          noun="city"
+          name={deleting.name}
+          warning="Every thana under it is deleted too."
+          onDelete={async () => {
+            await deleteCity(deleting.id);
+            refetch();
+          }}
+          onAuthError={handleAuthError}
+          onClose={() => setDeleting(null)}
+        />
+      )}
 
       {modalMode && (
         <Modal
