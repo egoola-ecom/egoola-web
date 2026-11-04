@@ -1,6 +1,7 @@
 import { authFetch } from "@/lib/auth";
 import { toQuery } from "./public-fetch";
 import type { GigPriceType, SellerRef } from "./types";
+import { ENDPOINTS } from "../endpoints";
 
 // Buyer cart (egoola-server docs/buyer-api-guide.md section 3). A buyer has one
 // active cart per (type, seller), never a single cart, so every call names the
@@ -89,17 +90,17 @@ function cartQuery(type: CartType, seller: SellerScope): string {
  * answers that case with a 200 and an empty body (the guide says JSON `null`),
  * so both read as "no cart". */
 export async function getCart(type: CartType, seller: SellerScope): Promise<Cart | null> {
-  const cart = await authFetch<Cart | null | undefined>("buyer", `/buyer/cart/${cartQuery(type, seller)}`);
+  const cart = await authFetch<Cart | null | undefined>("buyer", `${ENDPOINTS.buyer.cart.root}${cartQuery(type, seller)}`);
   return cart ?? null;
 }
 
 /** Every active cart at once. Never creates one. */
 export function getCartSummary() {
-  return authFetch<CartSummary>("buyer", "/buyer/cart/summary/");
+  return authFetch<CartSummary>("buyer", ENDPOINTS.buyer.cart.summary);
 }
 
 export function addCartItem(input: AddToCartInput) {
-  return authFetch<CartItem>("buyer", "/buyer/cart/items/", {
+  return authFetch<CartItem>("buyer", ENDPOINTS.buyer.cart.items.list, {
     method: "POST",
     body: JSON.stringify(input),
   });
@@ -108,19 +109,19 @@ export function addCartItem(input: AddToCartInput) {
 /** Replaces the value (it does not add to it). Send `qty` on a product line,
  * `duration` on a gig line. */
 export function updateCartItem(id: number, change: { qty: number } | { duration: number }) {
-  return authFetch<CartItem>("buyer", `/buyer/cart/items/${id}/`, {
+  return authFetch<CartItem>("buyer", ENDPOINTS.buyer.cart.items.detail(id), {
     method: "PATCH",
     body: JSON.stringify(change),
   });
 }
 
 export function removeCartItem(id: number) {
-  return authFetch<void>("buyer", `/buyer/cart/items/${id}/`, { method: "DELETE" });
+  return authFetch<void>("buyer", ENDPOINTS.buyer.cart.items.detail(id), { method: "DELETE" });
 }
 
 /** Empties the cart; the cart itself stays. */
 export function clearCart(type: CartType, seller: SellerScope) {
-  return authFetch<void>("buyer", `/buyer/cart/${cartQuery(type, seller)}`, { method: "DELETE" });
+  return authFetch<void>("buyer", `${ENDPOINTS.buyer.cart.root}${cartQuery(type, seller)}`, { method: "DELETE" });
 }
 
 /** The scope that names exactly this cart again. */

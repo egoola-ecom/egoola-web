@@ -1,6 +1,7 @@
 import { authFetch } from "@/lib/auth";
 import { toQuery } from "./public-fetch";
 import type { GigPriceType, PageResult } from "./types";
+import { ENDPOINTS } from "../endpoints";
 
 // Buyer jobs (egoola-server docs/buyer-api-guide.md section 5). A buyer posts a
 // job with a budget, sellers bid, the buyer accepts one bid and that creates an
@@ -118,28 +119,28 @@ export interface JobInput {
 const json = (body: unknown): RequestInit => ({ body: JSON.stringify(body) });
 
 export function listJobs(query: { status?: string; search?: string; page?: number; page_size?: number } = {}) {
-  return authFetch<PageResult<JobRow>>("buyer", `/buyer/jobs/${toQuery(query)}`);
+  return authFetch<PageResult<JobRow>>("buyer", `${ENDPOINTS.buyer.jobs.list}${toQuery(query)}`);
 }
 
 export function getJob(id: number) {
-  return authFetch<Job>("buyer", `/buyer/jobs/${id}/`);
+  return authFetch<Job>("buyer", ENDPOINTS.buyer.jobs.detail(id));
 }
 
 export function createJob(input: JobInput) {
-  return authFetch<Job>("buyer", "/buyer/jobs/", { method: "POST", ...json(input) });
+  return authFetch<Job>("buyer", ENDPOINTS.buyer.jobs.list, { method: "POST", ...json(input) });
 }
 
 export function updateJob(id: number, input: JobInput) {
-  return authFetch<Job>("buyer", `/buyer/jobs/${id}/`, { method: "PATCH", ...json(input) });
+  return authFetch<Job>("buyer", ENDPOINTS.buyer.jobs.detail(id), { method: "PATCH", ...json(input) });
 }
 
 export function listBids(jobId: number, query: { status?: string; page?: number; page_size?: number } = {}) {
-  return authFetch<PageResult<BuyerBid>>("buyer", `/buyer/jobs/${jobId}/bids/${toQuery(query)}`);
+  return authFetch<PageResult<BuyerBid>>("buyer", `${ENDPOINTS.buyer.jobs.bids(jobId)}${toQuery(query)}`);
 }
 
 /** `tierId` is required only when the bid quoted more than one price option. */
 export function acceptBid(jobId: number, bidId: number, tierId?: number) {
-  return authFetch<AcceptResult>("buyer", `/buyer/jobs/${jobId}/bids/${bidId}/accept/`, {
+  return authFetch<AcceptResult>("buyer", ENDPOINTS.buyer.jobs.acceptBid(jobId, bidId), {
     method: "POST",
     ...json(tierId ? { price_tier_id: tierId } : {}),
   });

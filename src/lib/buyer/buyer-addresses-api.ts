@@ -1,4 +1,5 @@
 import { authFetch } from "@/lib/auth";
+import { ENDPOINTS } from "../endpoints";
 
 // Buyer address book (egoola-server docs/buyer-address-api-guide.md). A short
 // list of saved delivery addresses, newest first, returned as a plain array
@@ -43,21 +44,21 @@ export interface AddressInput {
   zip?: string;
 }
 
-const PATH = "/buyer/addresses/";
+const ADDRESSES = ENDPOINTS.buyer.addresses;
 
-export const listAddresses = () => authFetch<BuyerAddress[]>("buyer", PATH);
+export const listAddresses = () => authFetch<BuyerAddress[]>("buyer", ADDRESSES.list);
 
-export const getAddress = (id: number) => authFetch<BuyerAddress>("buyer", `${PATH}${id}/`);
+export const getAddress = (id: number) => authFetch<BuyerAddress>("buyer", ADDRESSES.detail(id));
 
 export const createAddress = (input: AddressInput) =>
-  authFetch<BuyerAddress>("buyer", PATH, { method: "POST", body: JSON.stringify(input) });
+  authFetch<BuyerAddress>("buyer", ADDRESSES.list, { method: "POST", body: JSON.stringify(input) });
 
 /** Partial: send only the fields that changed. The server checks the location
  * chain against the saved address with the new fields merged over it. */
 export const updateAddress = (id: number, input: Partial<AddressInput>) =>
-  authFetch<BuyerAddress>("buyer", `${PATH}${id}/`, { method: "PATCH", body: JSON.stringify(input) });
+  authFetch<BuyerAddress>("buyer", ADDRESSES.detail(id), { method: "PATCH", body: JSON.stringify(input) });
 
-export const deleteAddress = (id: number) => authFetch<void>("buyer", `${PATH}${id}/`, { method: "DELETE" });
+export const deleteAddress = (id: number) => authFetch<void>("buyer", ADDRESSES.detail(id), { method: "DELETE" });
 
 export interface AddressProblem {
   /** Messages by field name, for the place the buyer is looking at. */

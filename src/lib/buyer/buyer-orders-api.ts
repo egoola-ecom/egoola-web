@@ -2,6 +2,7 @@ import { ApiError, apiFetch } from "@/lib/api";
 import { authFetch } from "@/lib/auth";
 import { toQuery } from "./public-fetch";
 import type { PageResult } from "./types";
+import { ENDPOINTS } from "../endpoints";
 
 // Buyer orders (egoola-server docs/buyer-order-api-guide.md). Checkout turns one
 // active cart into an order, its lines and its payment in a single call. The
@@ -96,18 +97,18 @@ export interface CheckoutInput {
   payment_gateway: number;
 }
 
-const PATH = "/buyer/orders/";
+const ORDERS = ENDPOINTS.buyer.orders;
 
 export const checkout = (input: CheckoutInput) =>
-  authFetch<Order>("buyer", PATH, { method: "POST", body: JSON.stringify(input) });
+  authFetch<Order>("buyer", ORDERS.list, { method: "POST", body: JSON.stringify(input) });
 
 export const listOrders = (params: { status?: string; page?: number; page_size?: number } = {}) =>
-  authFetch<PageResult<OrderRow>>("buyer", `${PATH}${toQuery(params)}`);
+  authFetch<PageResult<OrderRow>>("buyer", `${ORDERS.list}${toQuery(params)}`);
 
-export const getOrder = (id: number) => authFetch<Order>("buyer", `${PATH}${id}/`);
+export const getOrder = (id: number) => authFetch<Order>("buyer", ORDERS.detail(id));
 
 export const cancelOrder = (id: number, reason?: string) =>
-  authFetch<Order>("buyer", `${PATH}${id}/`, {
+  authFetch<Order>("buyer", ORDERS.detail(id), {
     method: "PATCH",
     body: JSON.stringify(reason?.trim() ? { status: "cancelled", reason: reason.trim() } : { status: "cancelled" }),
   });
@@ -124,7 +125,7 @@ export interface PublicGateway {
 
 /** Active gateways, no login, no paging. Never hardcode an id: it is whatever
  * the database assigned. */
-export const listPublicGateways = () => apiFetch<PublicGateway[]>("/public/orders/payment-gateways/");
+export const listPublicGateways = () => apiFetch<PublicGateway[]>(ENDPOINTS.public.paymentGateways);
 
 export interface OrderProblem {
   fields: Record<string, string>;
