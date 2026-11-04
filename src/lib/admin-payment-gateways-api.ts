@@ -1,5 +1,6 @@
 import { authFetch } from "./auth";
 import { PaginatedResponse } from "./accounts-api";
+import { ENDPOINTS } from "./endpoints";
 
 // ---------------------------------------------------------------------------
 // Payment gateway — a way a buyer can pay at checkout (today: Cash on
@@ -28,7 +29,7 @@ export interface PaymentGatewayInput {
   icon?: File | null;
 }
 
-const GATEWAYS_PATH = "/orders/payment-gateways/";
+const GATEWAYS = ENDPOINTS.admin.paymentGateways;
 
 /** JSON when there is no icon, multipart when there is one. */
 function bodyFor(input: Partial<PaymentGatewayInput>): string | FormData {
@@ -43,23 +44,23 @@ function bodyFor(input: Partial<PaymentGatewayInput>): string | FormData {
 }
 
 export function listGateways(params: URLSearchParams) {
-  return authFetch<PaginatedResponse<PaymentGateway>>("admin", `${GATEWAYS_PATH}?${params}`);
+  return authFetch<PaginatedResponse<PaymentGateway>>("admin", `${GATEWAYS.list}?${params}`);
 }
 
 export function createGateway(input: PaymentGatewayInput) {
-  return authFetch<PaymentGateway>("admin", GATEWAYS_PATH, {
+  return authFetch<PaymentGateway>("admin", GATEWAYS.list, {
     method: "POST",
     body: bodyFor(input),
   });
 }
 
 export function updateGateway(id: number, input: Partial<PaymentGatewayInput>) {
-  return authFetch<PaymentGateway>("admin", `${GATEWAYS_PATH}${id}/`, {
+  return authFetch<PaymentGateway>("admin", GATEWAYS.detail(id), {
     method: "PATCH",
     body: bodyFor(input),
   });
 }
 
 export function deleteGateway(id: number) {
-  return authFetch<void>("admin", `${GATEWAYS_PATH}${id}/`, { method: "DELETE" });
+  return authFetch<void>("admin", GATEWAYS.detail(id), { method: "DELETE" });
 }

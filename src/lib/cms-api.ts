@@ -1,5 +1,6 @@
 import { authFetch } from "./auth";
 import { PaginatedResponse } from "./accounts-api";
+import { ENDPOINTS } from "./endpoints";
 
 // ---------------------------------------------------------------------------
 // CMS (docs/cms-api-guide.md) — admin-only: Banners, Email Templates, Site
@@ -43,10 +44,10 @@ export interface BannerInput {
   image?: File | null;
 }
 
-const BANNERS_PATH = "/cms/banners/";
+const BANNERS = ENDPOINTS.admin.cms.banners;
 
 export function listBanners(params: URLSearchParams) {
-  return authFetch<PaginatedResponse<BannerItem>>("admin", `${BANNERS_PATH}?${params}`);
+  return authFetch<PaginatedResponse<BannerItem>>("admin", `${BANNERS.list}?${params}`);
 }
 
 /** Banners are always written as multipart (the image shares the request).
@@ -68,21 +69,21 @@ function buildBannerFormData(input: BannerInput): FormData {
 }
 
 export function createBanner(input: BannerInput) {
-  return authFetch<BannerItem>("admin", BANNERS_PATH, {
+  return authFetch<BannerItem>("admin", BANNERS.list, {
     method: "POST",
     body: buildBannerFormData(input),
   });
 }
 
 export function updateBanner(id: number, input: BannerInput) {
-  return authFetch<BannerItem>("admin", `${BANNERS_PATH}${id}/`, {
+  return authFetch<BannerItem>("admin", BANNERS.detail(id), {
     method: "PATCH",
     body: buildBannerFormData(input),
   });
 }
 
 export function deleteBanner(id: number) {
-  return authFetch<void>("admin", `${BANNERS_PATH}${id}/`, { method: "DELETE" });
+  return authFetch<void>("admin", BANNERS.detail(id), { method: "DELETE" });
 }
 
 // --- Email templates -------------------------------------------------------
@@ -106,28 +107,28 @@ export interface EmailTemplateInput {
   is_active: boolean;
 }
 
-const TEMPLATES_PATH = "/cms/email-templates/";
+const TEMPLATES = ENDPOINTS.admin.cms.emailTemplates;
 
 export function listEmailTemplates(params: URLSearchParams) {
-  return authFetch<PaginatedResponse<EmailTemplateItem>>("admin", `${TEMPLATES_PATH}?${params}`);
+  return authFetch<PaginatedResponse<EmailTemplateItem>>("admin", `${TEMPLATES.list}?${params}`);
 }
 
 export function createEmailTemplate(input: EmailTemplateInput) {
-  return authFetch<EmailTemplateItem>("admin", TEMPLATES_PATH, {
+  return authFetch<EmailTemplateItem>("admin", TEMPLATES.list, {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export function updateEmailTemplate(id: number, input: EmailTemplateInput) {
-  return authFetch<EmailTemplateItem>("admin", `${TEMPLATES_PATH}${id}/`, {
+  return authFetch<EmailTemplateItem>("admin", TEMPLATES.detail(id), {
     method: "PATCH",
     body: JSON.stringify(input),
   });
 }
 
 export function deleteEmailTemplate(id: number) {
-  return authFetch<void>("admin", `${TEMPLATES_PATH}${id}/`, { method: "DELETE" });
+  return authFetch<void>("admin", TEMPLATES.detail(id), { method: "DELETE" });
 }
 
 // --- Site settings ---------------------------------------------------------
@@ -145,14 +146,14 @@ export interface SettingItem {
  * settings list but read-only there (the server answers 400 otherwise). */
 export const RESERVED_SETTING_KEYS = ["site_logo_path", "site_logo_url"];
 
-const SETTINGS_PATH = "/cms/settings/";
+const SETTINGS = ENDPOINTS.admin.cms.settings;
 
 export function listSettings(params: URLSearchParams) {
-  return authFetch<PaginatedResponse<SettingItem>>("admin", `${SETTINGS_PATH}?${params}`);
+  return authFetch<PaginatedResponse<SettingItem>>("admin", `${SETTINGS.list}?${params}`);
 }
 
 export function createSetting(input: { key: string; value: SettingValue }) {
-  return authFetch<SettingItem>("admin", SETTINGS_PATH, {
+  return authFetch<SettingItem>("admin", SETTINGS.list, {
     method: "POST",
     body: JSON.stringify(input),
   });
@@ -160,14 +161,14 @@ export function createSetting(input: { key: string; value: SettingValue }) {
 
 /** Settings are addressed by key, not id. */
 export function updateSetting(key: string, value: SettingValue) {
-  return authFetch<SettingItem>("admin", `${SETTINGS_PATH}${encodeURIComponent(key)}/`, {
+  return authFetch<SettingItem>("admin", SETTINGS.detail(key), {
     method: "PATCH",
     body: JSON.stringify({ value }),
   });
 }
 
 export function deleteSetting(key: string) {
-  return authFetch<void>("admin", `${SETTINGS_PATH}${encodeURIComponent(key)}/`, {
+  return authFetch<void>("admin", SETTINGS.detail(key), {
     method: "DELETE",
   });
 }
@@ -179,18 +180,18 @@ export interface SiteLogo {
   url: string | null;
 }
 
-const LOGO_PATH = "/cms/site-logo/";
+const LOGO = ENDPOINTS.admin.cms.siteLogo;
 
 export function getSiteLogo() {
-  return authFetch<SiteLogo>("admin", LOGO_PATH);
+  return authFetch<SiteLogo>("admin", LOGO);
 }
 
 export function uploadSiteLogo(image: File) {
   const formData = new FormData();
   formData.append("image", image);
-  return authFetch<SiteLogo>("admin", LOGO_PATH, { method: "POST", body: formData });
+  return authFetch<SiteLogo>("admin", LOGO, { method: "POST", body: formData });
 }
 
 export function deleteSiteLogo() {
-  return authFetch<void>("admin", LOGO_PATH, { method: "DELETE" });
+  return authFetch<void>("admin", LOGO, { method: "DELETE" });
 }

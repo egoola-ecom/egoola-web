@@ -1,6 +1,7 @@
 import type { CursorResponse } from "./accounts-api";
 import type { AdminBuyerSummary, AuditColumns, CartType } from "./admin-carts-api";
 import { authFetch } from "./auth";
+import { ENDPOINTS } from "./endpoints";
 
 // ---------------------------------------------------------------------------
 // Admin oversight of every buyer's wishlist. Read only, cursor paged.
@@ -10,7 +11,7 @@ import { authFetch } from "./auth";
 // `listing_visible` says so and the raw statuses say why.
 // ---------------------------------------------------------------------------
 
-const FAVOURITES_PATH = "/engagement/favourites/";
+const FAVOURITES = ENDPOINTS.admin.wishlists;
 
 export interface FavouriteListing {
   id: number;
@@ -41,10 +42,10 @@ export interface FavouriteListItem {
 export type FavouriteDetail = FavouriteListItem & AuditColumns;
 
 export function listFavourites(target: URLSearchParams | string) {
-  const path = typeof target === "string" ? target : `${FAVOURITES_PATH}?${target}`;
+  const path = typeof target === "string" ? target : `${FAVOURITES.list}?${target}`;
   return authFetch<CursorResponse<FavouriteListItem>>("admin", path);
 }
 
 export function getFavourite(id: number) {
-  return authFetch<FavouriteDetail>("admin", `${FAVOURITES_PATH}${id}/`);
+  return authFetch<FavouriteDetail>("admin", FAVOURITES.detail(id));
 }

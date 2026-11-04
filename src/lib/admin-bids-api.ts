@@ -2,6 +2,7 @@ import type { CursorResponse } from "./accounts-api";
 import { authFetch } from "./auth";
 import type { GigPriceType } from "./gig-api";
 import type { JobStatus } from "./admin-jobs-api";
+import { ENDPOINTS } from "./endpoints";
 
 // ---------------------------------------------------------------------------
 // Admin panel for Bidding, cursor paged ({next, previous, results}, no
@@ -99,28 +100,28 @@ export interface AcceptedOrder {
 
 export type BidOrdering = "-created_at" | "created_at" | "-updated_at" | "updated_at";
 
-const BIDS_PATH = "/bidding/bids/";
+const BIDS = ENDPOINTS.admin.bidding;
 
 /** Pass the filters (status, listing = job id, bidder = seller id, ordering)
  * for the first page, or the server's `next` link to continue. */
 export function listBids(target: URLSearchParams | string) {
-  const path = typeof target === "string" ? target : `${BIDS_PATH}?${target}`;
+  const path = typeof target === "string" ? target : `${BIDS.list}?${target}`;
   return authFetch<CursorResponse<BidListItem>>("admin", path);
 }
 
 export function getBid(id: number) {
-  return authFetch<BidDetail>("admin", `${BIDS_PATH}${id}/`);
+  return authFetch<BidDetail>("admin", BIDS.detail(id));
 }
 
 export function createBid(input: Partial<BidInput> & { listing: number; bidder: number }) {
-  return authFetch<BidDetail>("admin", BIDS_PATH, {
+  return authFetch<BidDetail>("admin", BIDS.list, {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export function updateBid(id: number, input: Partial<BidInput>) {
-  return authFetch<BidDetail>("admin", `${BIDS_PATH}${id}/`, {
+  return authFetch<BidDetail>("admin", BIDS.detail(id), {
     method: "PATCH",
     body: JSON.stringify(input),
   });
@@ -128,7 +129,7 @@ export function updateBid(id: number, input: Partial<BidInput>) {
 
 /** `priceTierId` only when the bid quotes more than one tier. */
 export function acceptBid(id: number, priceTierId?: number) {
-  return authFetch<{ bid: BidDetail; order: AcceptedOrder }>("admin", `${BIDS_PATH}${id}/accept/`, {
+  return authFetch<{ bid: BidDetail; order: AcceptedOrder }>("admin", BIDS.accept(id), {
     method: "POST",
     body: JSON.stringify(priceTierId != null ? { price_tier_id: priceTierId } : {}),
   });
@@ -137,7 +138,7 @@ export function acceptBid(id: number, priceTierId?: number) {
 /** Undo a hire: the bid is `rejected`, its order cancelled and the job opens
  * again. The note is mandatory. */
 export function rejectBid(id: number, note: string) {
-  return authFetch<BidDetail>("admin", `${BIDS_PATH}${id}/reject/`, {
+  return authFetch<BidDetail>("admin", BIDS.reject(id), {
     method: "POST",
     body: JSON.stringify({ note }),
   });

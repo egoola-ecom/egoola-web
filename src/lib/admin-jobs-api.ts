@@ -1,6 +1,7 @@
 import type { PaginatedResponse } from "./accounts-api";
 import { authFetch } from "./auth";
 import type { GigPriceType } from "./gig-api";
+import { ENDPOINTS } from "./endpoints";
 
 // ---------------------------------------------------------------------------
 // Admin panel for Jobs (a buyer's request for work), limit/offset paged like
@@ -129,28 +130,28 @@ export interface JobInput {
 
 export type JobOrdering = "-created_at" | "created_at" | "-updated_at" | "updated_at" | "id" | "-id";
 
-const JOBS_PATH = "/catalog/jobs/";
+const JOBS = ENDPOINTS.admin.jobs;
 
 /** Filters: status, category, buyer, created_from / created_to,
  * requested_from / requested_to, ordering. Search: title, description, buyer
  * name or phone. */
 export function listJobs(params: URLSearchParams) {
-  return authFetch<PaginatedResponse<JobListItem>>("admin", `${JOBS_PATH}?${params}`);
+  return authFetch<PaginatedResponse<JobListItem>>("admin", `${JOBS.list}?${params}`);
 }
 
 export function getJob(id: number) {
-  return authFetch<JobDetail>("admin", `${JOBS_PATH}${id}/`);
+  return authFetch<JobDetail>("admin", JOBS.detail(id));
 }
 
 export function createJob(input: Partial<JobInput> & { buyer: number }) {
-  return authFetch<JobDetail>("admin", JOBS_PATH, {
+  return authFetch<JobDetail>("admin", JOBS.list, {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export function updateJob(id: number, input: Partial<JobInput>) {
-  return authFetch<JobDetail>("admin", `${JOBS_PATH}${id}/`, {
+  return authFetch<JobDetail>("admin", JOBS.detail(id), {
     method: "PATCH",
     body: JSON.stringify(input),
   });

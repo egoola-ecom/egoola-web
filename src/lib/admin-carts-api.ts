@@ -1,5 +1,6 @@
 import type { CursorResponse } from "./accounts-api";
 import { authFetch } from "./auth";
+import { ENDPOINTS } from "./endpoints";
 
 // ---------------------------------------------------------------------------
 // Admin oversight of every buyer's cart. Read only, cursor paged.
@@ -7,7 +8,7 @@ import { authFetch } from "./auth";
 //   GET /orders/carts/        GET /orders/carts/{id}/
 // ---------------------------------------------------------------------------
 
-const CARTS_PATH = "/orders/carts/";
+const CARTS = ENDPOINTS.admin.carts;
 
 export type CartType = "product" | "service";
 
@@ -95,10 +96,10 @@ export type CartOrdering =
 /** Pass the filters for the first page, or a `next` link (full URL) to
  * continue; a link already carries every filter. */
 export function listCarts(target: URLSearchParams | string) {
-  const path = typeof target === "string" ? target : `${CARTS_PATH}?${target}`;
+  const path = typeof target === "string" ? target : `${CARTS.list}?${target}`;
   return authFetch<CursorResponse<CartListItem>>("admin", path);
 }
 
 export function getCart(id: number) {
-  return authFetch<CartDetail>("admin", `${CARTS_PATH}${id}/`);
+  return authFetch<CartDetail>("admin", CARTS.detail(id));
 }
