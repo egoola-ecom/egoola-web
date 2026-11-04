@@ -8,6 +8,8 @@ export const SHOP = {
   notifications: "/buyer/notifications",
   messages: "/buyer/messages",
   orders: "/buyer/orders",
+  order: (id: number) => `/buyer/orders/${id}`,
+  checkout: (type: string, sellerId: number) => `/buyer/checkout?type=${type}&seller=${sellerId}`,
   cart: "/buyer/cart",
   jobs: "/buyer/jobs",
   newJob: "/buyer/jobs/new",

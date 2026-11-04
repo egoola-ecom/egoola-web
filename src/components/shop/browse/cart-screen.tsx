@@ -198,7 +198,10 @@ export function CartScreen() {
                 <strong style={{ fontSize: "1.3rem" }} data-testid="cart-subtotal">
                   {taka(cart.subtotal)}
                 </strong>
-                <p className="text-muted small mb-0">Delivery and any discount are added when you check out.</p>
+                <p className="text-muted small mb-2">Delivery and any discount are added when you check out.</p>
+                <Link className="btn btn-success" href={SHOP.checkout(type, cart.seller?.id ?? 0)} data-testid="checkout">
+                  Checkout
+                </Link>
               </div>
             </>
           )}
