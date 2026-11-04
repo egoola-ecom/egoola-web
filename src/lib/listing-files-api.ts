@@ -2,6 +2,7 @@ import { authFetch } from "./auth";
 import type { ListingMediaItem, ListingStatus } from "./listing-api";
 import { parseFieldErrors } from "./use-managed-list";
 import { ENDPOINTS } from "./endpoints";
+import { fileSizeProblem } from "./file-limits";
 
 // ---------------------------------------------------------------------------
 // Files of a product or a gig: the thumbnail (cover picture) and the gallery.
@@ -74,14 +75,14 @@ export function changeFiles(scope: FilesScope, id: number, input: ChangeFilesInp
 
 // --- Limits (the server checks them too) ------------------------------------
 
-/** Thumbnail: JPG, PNG or WEBP, up to 10 MB, a real picture. */
+/** Thumbnail: JPG, PNG or WEBP, a real picture, within the image limit (see
+ * `file-limits.ts`). */
 export const THUMBNAIL_TYPES = ["image/jpeg", "image/png", "image/webp"];
 export const THUMBNAIL_ACCEPT = THUMBNAIL_TYPES.join(",");
-export const THUMBNAIL_MAX_BYTES = 10 * 1024 * 1024;
 
-/** Gallery: JPG, PNG, WEBP, GIF, MP4 or PDF. An admin has no other limit. A
- * seller: 10 MB per file, 10 files per request, 20 per listing (files removed
- * in the same call do not count). */
+/** Gallery: JPG, PNG, WEBP, GIF, MP4 or PDF. Every file is held to the size
+ * limit of its kind (see `file-limits.ts`). A seller may also add 10 files per
+ * request and 20 per listing (files removed in the same call do not count). */
 export const GALLERY_TYPES = [
   "image/jpeg",
   "image/png",
@@ -91,7 +92,6 @@ export const GALLERY_TYPES = [
   "application/pdf",
 ];
 export const GALLERY_ACCEPT = ".jpg,.jpeg,.png,.webp,.gif,.mp4,.pdf";
-export const SELLER_MEDIA_MAX_BYTES = 10 * 1024 * 1024;
 export const SELLER_MEDIA_MAX_PER_REQUEST = 10;
 export const SELLER_MEDIA_MAX_PER_LISTING = 20;
 
@@ -100,8 +100,7 @@ export function checkThumbnailFile(file: File): string | null {
   if (!THUMBNAIL_TYPES.includes(file.type)) {
     return "The thumbnail must be a JPG, PNG or WEBP picture.";
   }
-  if (file.size > THUMBNAIL_MAX_BYTES) return "The thumbnail can be up to 10 MB.";
-  return null;
+  return fileSizeProblem(file);
 }
 
 /** Checks picked gallery files one by one. `kept` is how many files the
@@ -118,8 +117,8 @@ export function checkGalleryPick(
   for (const file of picked) {
     if (!GALLERY_TYPES.includes(file.type)) {
       problems.push(`${file.name}: only JPG, PNG, WEBP, GIF, MP4 or PDF files are accepted.`);
-    } else if (scope === "seller" && file.size > SELLER_MEDIA_MAX_BYTES) {
-      problems.push(`${file.name}: files can be up to 10 MB.`);
+    } else if (fileSizeProblem(file)) {
+      problems.push(fileSizeProblem(file) as string);
     } else if (scope === "seller" && queued + accepted.length >= SELLER_MEDIA_MAX_PER_REQUEST) {
       problems.push(`${file.name}: you can add up to ${SELLER_MEDIA_MAX_PER_REQUEST} files at a time.`);
     } else if (

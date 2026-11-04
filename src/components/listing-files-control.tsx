@@ -281,7 +281,7 @@ export function ListingFilesControl(props: Props) {
               </button>
             )}
           </div>
-          <p className={management.fieldHint}>JPG, PNG or WEBP, up to 10 MB.</p>
+          <p className={management.fieldHint}>JPG, PNG or WEBP, up to 2 MB.</p>
           {thumbError.map((message, i) => (
             <p key={i} className={management.fieldError}>
               {message}
@@ -357,9 +357,9 @@ export function ListingFilesControl(props: Props) {
           </div>
         )}
         <p className={management.fieldHint}>
-          JPG, PNG, WEBP, GIF, MP4 or PDF.
+          JPG, PNG, WEBP, GIF, MP4 or PDF. Images up to 2 MB, videos up to 10 MB, PDFs up to 30 MB.
           {scope === "seller" &&
-            ` Up to 10 MB each, ${SELLER_MEDIA_MAX_PER_REQUEST} at a time and ${SELLER_MEDIA_MAX_PER_LISTING} per listing.`}
+            ` ${SELLER_MEDIA_MAX_PER_REQUEST} at a time and ${SELLER_MEDIA_MAX_PER_LISTING} per listing.`}
         </p>
         {galleryError.map((message, i) => (
           <p key={i} className={management.fieldError}>
