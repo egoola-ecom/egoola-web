@@ -54,6 +54,7 @@ const LISTING_HREF = "/seller/listings";
 const GIGS_HREF = "/seller/gigs";
 const JOBS_HREF = "/seller/jobs";
 const BIDS_HREF = "/seller/bids";
+const ORDERS_HREF = "/seller/orders";
 
 /** The second row under the Jobs tab. */
 const JOBS_SUBTABS = [
@@ -130,6 +131,7 @@ export default function SellerLayout({
           // "Listing" opens Product; Product and Gigs are its second row.
           { href: LISTING_HREF, label: "Listing" },
           { href: JOBS_HREF, label: "Jobs" },
+          { href: ORDERS_HREF, label: "Orders" },
         ]
       : []),
     { href: "/seller/profile", label: "My profile" },
@@ -138,6 +140,7 @@ export default function SellerLayout({
 
   const inListing = pathname.startsWith(LISTING_HREF) || pathname.startsWith(GIGS_HREF);
   const inJobs = pathname.startsWith(JOBS_HREF) || pathname.startsWith(BIDS_HREF);
+  const inOrders = pathname.startsWith(ORDERS_HREF);
   // The job board's own page and a job's page are both "Job board"; My jobs and
   // My bids have their own paths.
   const jobsSubtabActive = (tab: (typeof JOBS_SUBTABS)[number]) =>
@@ -153,7 +156,7 @@ export default function SellerLayout({
         loginPath="/login"
       />
       <div className={shell.page}>
-        <div className={`${shell.wrap} ${inListing || inJobs ? shell.wrapWide : ""}`}>
+        <div className={`${shell.wrap} ${inListing || inJobs || inOrders ? shell.wrapWide : ""}`}>
           <StatusBanner me={me} />
           <nav className={shell.tabs} aria-label="Seller sections">
             {tabs.map((tab) => (
