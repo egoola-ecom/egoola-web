@@ -19,6 +19,7 @@ import { FieldErrors, parseFieldErrors, useManagedList } from "@/lib/use-managed
 import { GeographyFields } from "../_shared/geography-fields";
 import { ReadonlyField } from "../_shared/readonly-field";
 import { DeleteDialog } from "./delete-dialog";
+import { ALLOW_TAXONOMY_DELETE } from "../_shared/delete-switch";
 import styles from "../management.module.css";
 
 function StateForm({
@@ -238,13 +239,15 @@ export function StatesPanel() {
                       >
                         Edit
                       </button>
-                      <button
-                        type="button"
-                        className={`${styles.actionButton} ${styles.actionButtonDanger}`}
-                        onClick={() => setDeleting(item)}
-                      >
-                        Delete
-                      </button>
+                      {ALLOW_TAXONOMY_DELETE && (
+                        <button
+                          type="button"
+                          className={`${styles.actionButton} ${styles.actionButtonDanger}`}
+                          onClick={() => setDeleting(item)}
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

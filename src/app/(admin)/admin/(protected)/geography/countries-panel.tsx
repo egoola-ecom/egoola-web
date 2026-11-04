@@ -15,6 +15,7 @@ import { AuthError, clearSession } from "@/lib/auth";
 import { FieldErrors, parseFieldErrors, useManagedList } from "@/lib/use-managed-list";
 import { ReadonlyField } from "../_shared/readonly-field";
 import { DeleteDialog } from "./delete-dialog";
+import { ALLOW_TAXONOMY_DELETE } from "../_shared/delete-switch";
 import styles from "../management.module.css";
 
 function CountryForm({
@@ -206,13 +207,15 @@ export function CountriesPanel() {
                       >
                         Edit
                       </button>
-                      <button
-                        type="button"
-                        className={`${styles.actionButton} ${styles.actionButtonDanger}`}
-                        onClick={() => setDeleting(item)}
-                      >
-                        Delete
-                      </button>
+                      {ALLOW_TAXONOMY_DELETE && (
+                        <button
+                          type="button"
+                          className={`${styles.actionButton} ${styles.actionButtonDanger}`}
+                          onClick={() => setDeleting(item)}
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
