@@ -113,6 +113,7 @@ export const ENDPOINTS = {
       accept: (id: Id) => `/bidding/bids/${id}/accept/`,
       reject: (id: Id) => `/bidding/bids/${id}/reject/`,
     },
+    dashboard: { summary: "/dashboard/summary/" },
     orders: resource("/orders/orders/"),
     carts: resource("/orders/carts/"),
     wishlists: resource("/engagement/favourites/"),
