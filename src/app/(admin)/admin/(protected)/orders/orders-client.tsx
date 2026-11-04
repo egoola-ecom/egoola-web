@@ -12,11 +12,11 @@ import { formatMoney } from "../_shared/readonly-field";
 import styles from "../management.module.css";
 
 /** Every product order on the platform, newest first, cursor paged ("Load
- * more", no total). `buyer` and `seller` come from a link that opened the page
- * and narrow the list; they can be changed or dropped like any other filter. */
-export function OrdersClient({ buyer, seller }: { buyer?: string; seller?: string }) {
+ * more", no total). `buyer`, `seller` and `status` come from a link that opened
+ * the page (a dashboard tile, for example) and narrow the list; they can be changed or dropped like any other filter. */
+export function OrdersClient({ buyer, seller, status: initialStatus }: { buyer?: string; seller?: string; status?: string }) {
   const [searchText, setSearchText] = useState("");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState(initialStatus ?? "");
   const [orderType, setOrderType] = useState("");
   const [buyerId, setBuyerId] = useState<number | null>(buyer ? Number(buyer) : null);
   const [sellerId, setSellerId] = useState<number | null>(seller ? Number(seller) : null);
