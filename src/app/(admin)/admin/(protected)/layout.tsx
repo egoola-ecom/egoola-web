@@ -58,6 +58,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/admin/buyers", label: "Buyers" },
   { href: "/admin/carts", label: "Carts" },
   { href: "/admin/wishlists", label: "Wishlists" },
+  { href: "/admin/orders", label: "Orders" },
   { href: "/admin/payment-gateways", label: "Payment Gateways" },
   { href: "/admin/geography", label: "Geography" },
   { href: CATALOG_HREF, label: "Catalog" },
