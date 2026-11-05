@@ -12,12 +12,13 @@ import { GeographyFields } from "../_shared/geography-fields";
 import { ProfilePictureField } from "../_shared/profile-picture-field";
 import { formatMoney, ReadonlyField } from "../_shared/readonly-field";
 import { parseTagList, TagListField } from "../_shared/tag-list-field";
+import { STATUS_LABELS, allowedAccountStatuses } from "./seller-badges";
 import styles from "../management.module.css";
 
 const STATUS_OPTIONS: { value: SellerStatus; label: string }[] = [
-  { value: "active", label: "Active" },
-  { value: "inactive", label: "Inactive (paused / awaiting activation)" },
-  { value: "suspended", label: "Suspended" },
+  { value: "active", label: STATUS_LABELS.active },
+  { value: "inactive", label: STATUS_LABELS.inactive },
+  { value: "suspended", label: STATUS_LABELS.suspended },
 ];
 
 const MEDIA_FOR_OPTIONS: { value: SellerMediaFor; label: string }[] = [
@@ -70,6 +71,17 @@ export function SellerForm({
   });
 
   const [phoneEdited, setPhoneEdited] = useState(false);
+  // On an edit, the account status can only be one the verification status
+  // allows (Pending is always Inactive, Rejected always Suspended, an Unverified
+  // seller cannot be Active). A new seller is Verified by default: any choice.
+  const statusOptions = initial
+    ? STATUS_OPTIONS.filter((opt) => allowedAccountStatuses(initial.verification_status).includes(opt.value))
+    : STATUS_OPTIONS;
+  const [status, setStatus] = useState<SellerStatus>(
+    initial && !statusOptions.some((opt) => opt.value === initial.status)
+      ? (statusOptions[0]?.value ?? initial.status)
+      : (initial?.status ?? "active"),
+  );
   const [removedMediaIds, setRemovedMediaIds] = useState<number[]>([]);
   const [newDocuments, setNewDocuments] = useState<NewDocumentRow<SellerMediaFor>[]>([]);
 
@@ -82,7 +94,7 @@ export function SellerForm({
       name: String(data.get("name") ?? ""),
       email: String(data.get("email") ?? ""),
       phone: String(data.get("phone") ?? ""),
-      status: (data.get("status") as SellerStatus) ?? "active",
+      status,
       skills: parseTagList(skillsText),
       interest: parseTagList(interestText),
       experience,
@@ -212,14 +224,22 @@ export function SellerForm({
             id="status"
             name="status"
             className={styles.select}
-            defaultValue={initial?.status ?? "active"}
+            value={status}
+            onChange={(event) => setStatus(event.target.value as SellerStatus)}
           >
-            {STATUS_OPTIONS.map((opt) => (
+            {statusOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
             ))}
           </select>
+          {initial && statusOptions.length < STATUS_OPTIONS.length && (
+            <span className={styles.fieldHint} data-testid="status-rule-hint">
+              The account status follows the verification status ({initial.verification_status}), so
+              only the choices the rules allow are listed. Change the verification on the seller&apos;s
+              details page.
+            </span>
+          )}
         </div>
 
         {initial && (

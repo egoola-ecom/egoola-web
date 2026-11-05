@@ -13,6 +13,7 @@ import { useCursorList } from "@/lib/use-cursor-list";
 import {
   STATUS_LABELS,
   STATUS_SHORT_LABELS,
+  VERIFICATION_LABELS,
   initials,
   statusBadgeClass,
   verificationBadgeClass,
@@ -147,7 +148,7 @@ export function SellerRequestsClient() {
                     <span
                       className={`${styles.badge} ${verificationBadgeClass(item.verification_status)}`}
                     >
-                      {item.verification_status}
+                      {VERIFICATION_LABELS[item.verification_status]}
                     </span>
                   </td>
                   <td>

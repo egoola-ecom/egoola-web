@@ -25,6 +25,9 @@ export function useSellerFilters() {
   const [verificationStatus, setVerificationStatus] = useState("");
   const [status, setStatus] = useState("");
   const [creatorType, setCreatorType] = useState("");
+  const [inQueue, setInQueue] = useState("");
+  const [emailVerified, setEmailVerified] = useState("");
+  const [phoneVerified, setPhoneVerified] = useState("");
   const [hasBusinessProfile, setHasBusinessProfile] = useState("");
   const [businessType, setBusinessType] = useState("");
   const [createdFrom, setCreatedFrom] = useState("");
@@ -40,6 +43,9 @@ export function useSellerFilters() {
     verification_status: verificationStatus,
     status,
     creator_type: creatorType,
+    is_seller_request: inQueue,
+    email_verified: emailVerified,
+    phone_verified: phoneVerified,
     has_business_profile: hasBusinessProfile,
     business_type: businessTypeQuery,
     created_from: createdFrom,
@@ -57,6 +63,9 @@ export function useSellerFilters() {
       verificationStatus ||
       status ||
       creatorType ||
+      inQueue ||
+      emailVerified ||
+      phoneVerified ||
       hasBusinessProfile ||
       businessType ||
       createdFrom ||
@@ -71,6 +80,9 @@ export function useSellerFilters() {
     setVerificationStatus("");
     setStatus("");
     setCreatorType("");
+    setInQueue("");
+    setEmailVerified("");
+    setPhoneVerified("");
     setHasBusinessProfile("");
     setBusinessType("");
     setCreatedFrom("");
@@ -90,6 +102,12 @@ export function useSellerFilters() {
     setStatus,
     creatorType,
     setCreatorType,
+    inQueue,
+    setInQueue,
+    emailVerified,
+    setEmailVerified,
+    phoneVerified,
+    setPhoneVerified,
     hasBusinessProfile,
     setHasBusinessProfile,
     businessType,
@@ -175,6 +193,40 @@ export function SellerFilterBar({
               <option value="seller">Self-registered</option>
               <option value="admin">Created by an admin</option>
             </select>
+          )}
+          {showCreatorType && (
+            <>
+              <select
+                className={styles.filterSelect}
+                aria-label="Filter by Seller Request queue"
+                value={f.inQueue}
+                onChange={(event) => f.setInQueue(event.target.value)}
+              >
+                <option value="">Seller Request queue: any</option>
+                <option value="true">In the queue</option>
+                <option value="false">Not in the queue</option>
+              </select>
+              <select
+                className={styles.filterSelect}
+                aria-label="Filter by email verified"
+                value={f.emailVerified}
+                onChange={(event) => f.setEmailVerified(event.target.value)}
+              >
+                <option value="">Email verified: any</option>
+                <option value="true">Email verified</option>
+                <option value="false">Email not verified</option>
+              </select>
+              <select
+                className={styles.filterSelect}
+                aria-label="Filter by phone verified"
+                value={f.phoneVerified}
+                onChange={(event) => f.setPhoneVerified(event.target.value)}
+              >
+                <option value="">Phone verified: any</option>
+                <option value="true">Phone verified</option>
+                <option value="false">Phone not verified</option>
+              </select>
+            </>
           )}
           <select
             className={styles.filterSelect}

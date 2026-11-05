@@ -246,6 +246,13 @@ export interface SellerProfileChangeLog {
 }
 
 export interface SellerDetail extends SellerListItem {
+  /** Read-only, detail only. True forever once the seller was saved as
+   * Verified; a seller with it can never be Rejected. */
+  was_ever_verified: boolean;
+  /** Read-only, detail only. The seller's access tier: Full = both true,
+   * Profile-only = can_edit_profile only, Locked = both false. */
+  can_operate: boolean;
+  can_edit_profile: boolean;
   profile_pic_path: string | null;
   email_verified_at: string | null;
   phone_verified_at: string | null;

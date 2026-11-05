@@ -8,7 +8,7 @@ import { resolveMediaUrl } from "@/lib/env";
 import { notifySellerRequestsChanged } from "@/lib/seller-request-count";
 import { FieldErrors, parseFieldErrors } from "@/lib/use-managed-list";
 import { formatMoney } from "../../_shared/readonly-field";
-import { STATUS_LABELS, initials, statusBadgeClass } from "../seller-badges";
+import { STATUS_LABELS, VERIFICATION_LABELS, initials, statusBadgeClass, verificationBadgeClass } from "../seller-badges";
 import { ProfileChangeHistory } from "../profile-change-history";
 import { SellerDocuments } from "../seller-documents";
 import { SellerProfileView } from "../seller-profile-view";
@@ -17,16 +17,11 @@ import styles from "../../management.module.css";
 
 /** What the admin is told after each decision. */
 function describeDecision(input: SellerReviewInput, name: string): string {
-  if (input.verification_status === "verified" && input.status === "active") {
-    return `${name} is approved and active. They can use the full seller features.`;
+  if (input.verification_status) {
+    const extra = input.status ? ` and the account status to ${STATUS_LABELS[input.status]}` : "";
+    return `${name}: verification set to ${VERIFICATION_LABELS[input.verification_status]}${extra}.`;
   }
-  if (input.verification_status === "rejected") return `${name} was rejected. The note is saved.`;
-  if (input.verification_status === "pending") return `${name} is marked pending.`;
-  if (input.status === "suspended") return `${name} is suspended and cannot log in.`;
-  if (input.status === "inactive") {
-    return `${name} is paused. They stay approved but cannot use seller features until activated.`;
-  }
-  if (input.status === "active") return `${name} is active.`;
+  if (input.status) return `${name}: account status set to ${STATUS_LABELS[input.status]}.`;
   return "Saved.";
 }
 
@@ -134,6 +129,9 @@ export function SellerDetailClient({ id, from }: { id: number; from?: string }) 
             {seller.email} · {seller.phone}
           </p>
           <div className={styles.detailBadgeRow}>
+            <span className={`${styles.badge} ${verificationBadgeClass(seller.verification_status)}`}>
+              {VERIFICATION_LABELS[seller.verification_status]}
+            </span>
             <span className={`${styles.badge} ${statusBadgeClass(seller.status)}`}>
               {STATUS_LABELS[seller.status]}
             </span>

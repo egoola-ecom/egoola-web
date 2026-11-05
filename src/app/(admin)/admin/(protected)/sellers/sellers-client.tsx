@@ -7,9 +7,12 @@ import {
   SellerInput,
   SellerListItem,
   createSeller,
+  SellerStatus,
   deleteSeller,
   listSellers,
+  updateSellerReview,
 } from "@/lib/accounts-api";
+import { apiErrorDetail, isConflict } from "@/lib/api";
 import { AuthError, clearSession } from "@/lib/auth";
 import { resolveMediaUrl } from "@/lib/env";
 import { notifySellerRequestsChanged, useSellerRequestCount } from "@/lib/seller-request-count";
@@ -17,6 +20,7 @@ import { FieldErrors, parseFieldErrors, useManagedList } from "@/lib/use-managed
 import {
   STATUS_LABELS,
   STATUS_SHORT_LABELS,
+  VERIFICATION_LABELS,
   initials,
   statusBadgeClass,
   verificationBadgeClass,
@@ -42,6 +46,11 @@ export function SellersClient() {
   const [submitting, setSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  // A refused delete (409: the seller has orders): the server's reason, and the
+  // seller it was about, so the admin can deactivate or suspend instead.
+  const [conflict, setConflict] = useState<{ item: SellerListItem; message: string } | null>(null);
+  const [moving, setMoving] = useState(false);
 
   function handleAuthError(err: unknown): boolean {
     if (err instanceof AuthError) {
@@ -56,14 +65,35 @@ export function SellersClient() {
     if (!window.confirm(
         `Delete seller "${item.name}"? This permanently deletes the seller and their uploaded documents.`,
       )) return;
+    setActionError(null);
+    setConflict(null);
     try {
       await deleteSeller(item.id);
       refetch();
       notifySellerRequestsChanged();
     } catch (err) {
-      if (!handleAuthError(err)) {
-        window.alert("Couldn't delete this seller. Please try again.");
-      }
+      if (handleAuthError(err)) return;
+      const message = apiErrorDetail(err) ?? "Couldn't delete this seller. Please try again.";
+      if (isConflict(err)) setConflict({ item, message });
+      else setActionError(message);
+    }
+  }
+
+  /** Deactivate or suspend the seller whose delete was refused. */
+  async function moveConflicting(status: SellerStatus) {
+    if (!conflict) return;
+    setMoving(true);
+    try {
+      await updateSellerReview(conflict.item.id, { status });
+      setConflict(null);
+      refetch();
+      notifySellerRequestsChanged();
+    } catch (err) {
+      if (handleAuthError(err)) return;
+      setConflict(null);
+      setActionError(apiErrorDetail(err) ?? "Couldn't change this seller's status.");
+    } finally {
+      setMoving(false);
     }
   }
 
@@ -131,6 +161,25 @@ export function SellersClient() {
       />
 
       {error && <p className={styles.errorBanner}>{error}</p>}
+      {actionError && <p className={styles.errorBanner}>{actionError}</p>}
+      {conflict && (
+        <p className={styles.errorBanner} role="alert" data-testid="seller-delete-conflict">
+          {conflict.message}{" "}
+          {conflict.item.status !== "inactive" && (
+            <button type="button" className={styles.actionButton} disabled={moving} onClick={() => void moveConflicting("inactive")}>
+              Deactivate instead
+            </button>
+          )}{" "}
+          {conflict.item.status !== "suspended" && (
+            <button type="button" className={styles.actionButton} disabled={moving} onClick={() => void moveConflicting("suspended")}>
+              Suspend instead
+            </button>
+          )}{" "}
+          <button type="button" className={styles.actionButton} onClick={() => setConflict(null)}>
+            Dismiss
+          </button>
+        </p>
+      )}
 
       <div className={styles.tableWrap}>
         <table className={styles.table}>
@@ -189,7 +238,7 @@ export function SellersClient() {
                     <span
                       className={`${styles.badge} ${verificationBadgeClass(item.verification_status)}`}
                     >
-                      {item.verification_status}
+                      {VERIFICATION_LABELS[item.verification_status]}
                     </span>
                   </td>
                   <td>
