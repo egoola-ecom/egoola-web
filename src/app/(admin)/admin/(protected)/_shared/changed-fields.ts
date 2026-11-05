@@ -1,6 +1,6 @@
 /** Fields that are never compared with the saved record — they are write-only
  * (a password, a new picture, files) and are sent whenever they carry something. */
-const WRITE_ONLY = ["password", "profile_pic", "media_for", "media_file", "media_delete_ids"];
+const WRITE_ONLY = ["password", "profile_pic", "remove_profile_pic", "media_for", "media_file", "media_delete_ids"];
 
 /** The location ids form one branch of the geography tree, so when any of them
  * changes all four are sent together (a lone state change would leave the old

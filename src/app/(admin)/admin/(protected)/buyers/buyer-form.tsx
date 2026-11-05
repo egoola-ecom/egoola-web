@@ -48,6 +48,7 @@ export function BuyerForm({
   onSubmit: (input: BuyerInput) => void;
 }) {
   const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
+  const [removePic, setRemovePic] = useState(false);
   const [skillsText, setSkillsText] = useState((initial?.skills ?? []).join(", "));
   const [interestsText, setInterestsText] = useState((initial?.interests ?? []).join(", "));
   const [experiences, setExperiences] = useState<ExperienceEntry[]>(
@@ -89,6 +90,7 @@ export function BuyerForm({
     };
     if (password) input.password = password;
     if (profilePicFile) input.profile_pic = profilePicFile;
+    else if (removePic) input.remove_profile_pic = true;
 
     const docsWithFiles = newDocuments.filter((doc) => doc.file);
     if (docsWithFiles.length > 0) {
@@ -108,6 +110,7 @@ export function BuyerForm({
           fallbackName={initial?.name ?? "New Buyer"}
           initialUrl={initial?.profile_pic_url ?? null}
           onFileChange={setProfilePicFile}
+          onRemoveChange={initial ? setRemovePic : undefined}
         />
 
         <div className={styles.field}>

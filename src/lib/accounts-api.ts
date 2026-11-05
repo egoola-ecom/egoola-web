@@ -103,6 +103,9 @@ export interface AdminInput {
   city?: number | null;
   thana?: number | null;
   profile_pic?: File | null;
+  /** Update only: clears the current picture back to empty. A new `profile_pic`
+   * in the same request wins over it. */
+  remove_profile_pic?: boolean;
   media_for?: AdminMediaFor[];
   media_file?: File[];
   media_delete_ids?: number[];
@@ -137,6 +140,7 @@ function buildAdminFormData(input: Partial<AdminInput>): FormData {
   appendGeoIfSet(formData, "thana", input.thana);
 
   if (input.profile_pic) formData.append("profile_pic", input.profile_pic);
+  else if (input.remove_profile_pic) formData.append("remove_profile_pic", "true");
   appendMediaFields(formData, input.media_for, input.media_file, input.media_delete_ids);
 
   return formData;
@@ -288,6 +292,9 @@ export interface SellerInput {
   city?: number | null;
   thana?: number | null;
   profile_pic?: File | null;
+  /** Update only: clears the current picture back to empty. A new `profile_pic`
+   * in the same request wins over it. */
+  remove_profile_pic?: boolean;
   media_for?: SellerMediaFor[];
   media_file?: File[];
   media_delete_ids?: number[];
@@ -317,6 +324,7 @@ function buildSellerFormData(input: SellerInput): FormData {
   appendGeoIfSet(formData, "thana", input.thana);
 
   if (input.profile_pic) formData.append("profile_pic", input.profile_pic);
+  else if (input.remove_profile_pic) formData.append("remove_profile_pic", "true");
   appendMediaFields(formData, input.media_for, input.media_file, input.media_delete_ids);
 
   return formData;
@@ -436,6 +444,9 @@ export interface BuyerInput {
   city?: number | null;
   thana?: number | null;
   profile_pic?: File | null;
+  /** Update only: clears the current picture back to empty. A new `profile_pic`
+   * in the same request wins over it. */
+  remove_profile_pic?: boolean;
   media_for?: BuyerMediaFor[];
   media_file?: File[];
   media_delete_ids?: number[];
@@ -464,6 +475,7 @@ function buildBuyerFormData(input: Partial<BuyerInput>): FormData {
   appendGeoIfSet(formData, "thana", input.thana);
 
   if (input.profile_pic) formData.append("profile_pic", input.profile_pic);
+  else if (input.remove_profile_pic) formData.append("remove_profile_pic", "true");
   appendMediaFields(formData, input.media_for, input.media_file, input.media_delete_ids);
 
   return formData;

@@ -56,6 +56,7 @@ export function SellerForm({
   const info = initial?.business_info;
 
   const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
+  const [removePic, setRemovePic] = useState(false);
   const [skillsText, setSkillsText] = useState((initial?.skills ?? []).join(", "));
   const [interestText, setInterestText] = useState((initial?.interest ?? []).join(", "));
   const [experience, setExperience] = useState<ExperienceEntry[]>(initial?.experience ?? []);
@@ -96,6 +97,7 @@ export function SellerForm({
     };
     if (password) input.password = password;
     if (profilePicFile) input.profile_pic = profilePicFile;
+    else if (removePic) input.remove_profile_pic = true;
 
     if (includeBusinessInfo) {
       const description = String(data.get("description") ?? "").trim();
@@ -130,6 +132,7 @@ export function SellerForm({
           fallbackName={initial?.name ?? "New Seller"}
           initialUrl={initial?.profile_pic_url ?? null}
           onFileChange={setProfilePicFile}
+          onRemoveChange={initial ? setRemovePic : undefined}
         />
 
         <div className={styles.field}>
