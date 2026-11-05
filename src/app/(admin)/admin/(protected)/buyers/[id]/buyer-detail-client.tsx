@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BuyerDetail, getBuyer } from "@/lib/accounts-api";
+import { BuyerDetail, getBuyer, updateBuyer } from "@/lib/accounts-api";
+import { apiErrorDetail } from "@/lib/api";
 import { AuthError, clearSession } from "@/lib/auth";
 import { resolveMediaUrl } from "@/lib/env";
 import { formatMoney } from "../../_shared/readonly-field";
@@ -15,6 +16,8 @@ export function BuyerDetailClient({ id }: { id: number }) {
   const [buyer, setBuyer] = useState<BuyerDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [togglingStatus, setTogglingStatus] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -44,6 +47,26 @@ export function BuyerDetailClient({ id }: { id: number }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  async function toggleStatus() {
+    if (!buyer) return;
+    const nextStatus = buyer.status === "active" ? "suspended" : "active";
+    setTogglingStatus(true);
+    setActionError(null);
+    try {
+      const updated = await updateBuyer(buyer.id, { status: nextStatus });
+      setBuyer(updated);
+    } catch (err) {
+      if (err instanceof AuthError) {
+        clearSession("admin");
+        router.replace("/admin/login");
+        return;
+      }
+      setActionError(apiErrorDetail(err) ?? "Couldn't change this buyer's status.");
+    } finally {
+      setTogglingStatus(false);
+    }
+  }
 
   if (loading) return <p className={styles.stateRow}>Loading…</p>;
   if (loadError || !buyer) {
@@ -97,12 +120,22 @@ export function BuyerDetailClient({ id }: { id: number }) {
         </button>
         <button
           type="button"
+          className={styles.actionButton}
+          disabled={togglingStatus}
+          onClick={() => void toggleStatus()}
+        >
+          {buyer.status === "active" ? "Suspend" : "Activate"}
+        </button>
+        <button
+          type="button"
           className={styles.addButton}
           onClick={() => router.push(`/admin/buyers/${id}/edit`)}
         >
           Update
         </button>
       </div>
+
+      {actionError && <p className={styles.errorBanner}>{actionError}</p>}
 
       <BuyerProfileView buyer={buyer} />
     </div>

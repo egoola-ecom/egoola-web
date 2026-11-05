@@ -129,7 +129,7 @@ export function BuyerForm({
 
         <div className={styles.field}>
           <label className={styles.label} htmlFor="email">
-            Email
+            Email (optional)
           </label>
           <input
             id="email"
@@ -137,7 +137,6 @@ export function BuyerForm({
             type="email"
             className={styles.input}
             defaultValue={initial?.email}
-            required
           />
           {fieldErrors.email?.[0] && <p className={styles.fieldError}>{fieldErrors.email[0]}</p>}
         </div>

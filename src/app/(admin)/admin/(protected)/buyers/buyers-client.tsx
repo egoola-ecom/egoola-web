@@ -10,8 +10,9 @@ import {
   createBuyer,
   deleteBuyer,
   listBuyers,
+  updateBuyer,
 } from "@/lib/accounts-api";
-import { ApiError } from "@/lib/api";
+import { apiErrorDetail, isConflict } from "@/lib/api";
 import { AuthError, clearSession } from "@/lib/auth";
 import { resolveMediaUrl } from "@/lib/env";
 import { useGeographySelection } from "@/lib/use-geography-selection";
@@ -72,6 +73,10 @@ export function BuyersClient() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  // A refused delete (409: the buyer has orders): the server's reason, and the
+  // buyer it was about, so the admin can suspend instead.
+  const [conflict, setConflict] = useState<{ item: BuyerListItem; message: string } | null>(null);
+  const [moving, setMoving] = useState(false);
 
   function handleAuthError(err: unknown): boolean {
     if (err instanceof AuthError) {
@@ -85,18 +90,32 @@ export function BuyersClient() {
   async function handleDeleteClick(item: BuyerListItem) {
     if (!window.confirm(`Delete buyer "${item.name}"? This cannot be undone.`)) return;
     setActionError(null);
+    setConflict(null);
     try {
       await deleteBuyer(item.id);
       refetch();
     } catch (err) {
       if (handleAuthError(err)) return;
-      const detail =
-        err instanceof ApiError && err.body && typeof err.body === "object"
-          ? (err.body as Record<string, unknown>).detail
-          : null;
-      setActionError(
-        typeof detail === "string" ? detail : "Couldn't delete this buyer. Please try again.",
-      );
+      const message = apiErrorDetail(err) ?? "Couldn't delete this buyer. Please try again.";
+      if (isConflict(err)) setConflict({ item, message });
+      else setActionError(message);
+    }
+  }
+
+  /** Suspend the buyer whose delete was refused. */
+  async function suspendConflicting() {
+    if (!conflict) return;
+    setMoving(true);
+    try {
+      await updateBuyer(conflict.item.id, { status: "suspended" });
+      setConflict(null);
+      refetch();
+    } catch (err) {
+      if (handleAuthError(err)) return;
+      setConflict(null);
+      setActionError(apiErrorDetail(err) ?? "Couldn't change this buyer's status.");
+    } finally {
+      setMoving(false);
     }
   }
 
@@ -221,6 +240,19 @@ export function BuyersClient() {
 
       {error && <p className={styles.errorBanner}>{error}</p>}
       {actionError && <p className={styles.errorBanner}>{actionError}</p>}
+      {conflict && (
+        <p className={styles.errorBanner} role="alert" data-testid="buyer-delete-conflict">
+          {conflict.message}{" "}
+          {conflict.item.status !== "suspended" && (
+            <button type="button" className={styles.actionButton} disabled={moving} onClick={() => void suspendConflicting()}>
+              Suspend instead
+            </button>
+          )}{" "}
+          <button type="button" className={styles.actionButton} onClick={() => setConflict(null)}>
+            Dismiss
+          </button>
+        </p>
+      )}
 
       <div className={styles.tableWrap}>
         <table className={styles.table}>
