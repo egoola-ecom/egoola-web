@@ -32,12 +32,15 @@ export interface SellerMe {
   is_seller_request: boolean;
   /** verified AND active — the only seller who may use full seller features. */
   can_operate: boolean;
+  /** May change their own profile and documents. False only for the Locked
+   * tier (Verified but Inactive or Suspended). A Rejected seller keeps it. */
+  can_edit_profile: boolean;
   created_at: string;
   requested_at: string | null;
 }
 
 /** Only what changed. Never send status, verification_status, verification_note,
- * is_seller_request, can_operate, created_at or requested_at (read-only), nor
+ * is_seller_request, can_operate, can_edit_profile, created_at or requested_at (read-only), nor
  * email / phone (a different value is a 400). */
 export interface SellerMePatch {
   name?: string;
@@ -114,6 +117,7 @@ function syncSession(me: SellerMe): void {
     verification_status: me.verification_status,
     status: me.status,
     can_operate: me.can_operate,
+    can_edit_profile: me.can_edit_profile,
   });
 }
 

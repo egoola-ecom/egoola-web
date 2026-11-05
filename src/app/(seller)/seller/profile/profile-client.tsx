@@ -690,6 +690,8 @@ function ResubmitCard() {
 
 export function ProfileClient() {
   const { me } = useSeller();
+  // The Locked tier (Verified but Inactive/Suspended) reads only.
+  const locked = me.can_edit_profile === false;
   // The details form starts from the saved profile; after a save it starts
   // over from the answer, so every field shows what the server stored.
   const [version, setVersion] = useState(0);
@@ -698,19 +700,28 @@ export function ProfileClient() {
   return (
     <div>
       <h1 className={shell.pageTitle}>My profile</h1>
-      <p className={shell.pageText}>
-        Keep your details and documents up to date. You can edit your profile whatever the state
-        of your application is.
-      </p>
-      <ProfileDetails
-        key={version}
-        initialNotice={savedNotice}
-        onSaved={(message) => {
-          setSavedNotice(message);
-          setVersion((v) => v + 1);
-        }}
-      />
-      <DocumentsCard />
+      {locked ? (
+        <p className={shell.pageText} role="status" data-testid="profile-locked">
+          Your account is {me.status === "suspended" ? "suspended" : "paused"}, so your profile and
+          documents are read-only. An admin has to make it active again.
+        </p>
+      ) : (
+        <p className={shell.pageText}>
+          Keep your details and documents up to date. You can edit your profile while your
+          application is being reviewed, and after a rejection.
+        </p>
+      )}
+      <fieldset disabled={locked} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+        <ProfileDetails
+          key={version}
+          initialNotice={savedNotice}
+          onSaved={(message) => {
+            setSavedNotice(message);
+            setVersion((v) => v + 1);
+          }}
+        />
+        <DocumentsCard />
+      </fieldset>
       {me.verification_status === "rejected" && <ResubmitCard />}
     </div>
   );

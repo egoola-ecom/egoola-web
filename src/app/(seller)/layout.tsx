@@ -34,10 +34,13 @@ function StatusBanner({ me }: { me: SellerMe }) {
   }
 
   if (me.verification_status === "verified") {
-    // verified AND inactive: paused by an admin.
+    // Verified but not Active: paused (Inactive) or Suspended by an admin.
+    // This is the Locked tier: nothing can be changed, not even the profile.
     return (
       <div className={`${styles.statusBanner} ${styles.statusWarn}`} role="status">
-        Your account is paused. An admin has to make it active again.
+        {me.status === "suspended"
+          ? "Your account is suspended. You can look at your account, but you cannot change anything until an admin makes it active again."
+          : "Your account is paused. You can look at your account, but you cannot change anything until an admin makes it active again."}
       </div>
     );
   }

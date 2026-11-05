@@ -21,6 +21,8 @@ export interface AuthSession {
   verification_status?: string;
   status?: string;
   can_operate?: boolean;
+  /** Seller sessions: false only in the Locked tier. */
+  can_edit_profile?: boolean;
   /** Seller sessions: the login number (the seller logs in with it). */
   phone?: string;
 }
