@@ -17,6 +17,8 @@ const LISTINGS_HREF = "/admin/catalog/listings";
 const PENDING_LISTINGS_HREF = "/admin/catalog/listings/requests";
 const GIGS_HREF = "/admin/gigs";
 const PENDING_GIGS_HREF = "/admin/gigs/requests";
+const JOBS_HREF = "/admin/jobs";
+const BIDDING_HREF = "/admin/bidding";
 
 /** Which waiting-count a menu entry shows as a badge. */
 type Badge = "sellerRequests" | "pendingListings" | "pendingGigs";
@@ -65,7 +67,7 @@ const NAV_ITEMS: NavItem[] = [
   {
     label: "Listing",
     key: "listing",
-    prefixes: [LISTINGS_HREF, GIGS_HREF],
+    prefixes: [LISTINGS_HREF, GIGS_HREF, JOBS_HREF, BIDDING_HREF],
     children: [
       {
         label: "Product",
@@ -85,10 +87,17 @@ const NAV_ITEMS: NavItem[] = [
           { href: PENDING_GIGS_HREF, label: "Requested Gigs", badge: "pendingGigs" },
         ],
       },
+      {
+        label: "Job",
+        key: "listing-job",
+        prefixes: [JOBS_HREF, BIDDING_HREF],
+        children: [
+          { href: JOBS_HREF, label: "Jobs List" },
+          { href: BIDDING_HREF, label: "Bidding" },
+        ],
+      },
     ],
   },
-  { href: "/admin/jobs", label: "Jobs" },
-  { href: "/admin/bidding", label: "Bidding" },
   { href: "/admin/cms", label: "CMS" },
 ];
 
