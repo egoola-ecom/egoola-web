@@ -79,7 +79,6 @@ export interface GigSku {
   description: string | null;
   description_bn: string | null;
   stock_qty: null;
-  reserved_qty: number;
   is_active: boolean;
   variants: never[];
 }

@@ -580,7 +580,6 @@ export function SkuEditor({
                             {formatAmount(original.effective_price, currency)}
                           </span>
                           {status !== "none" && ` · ${DISCOUNT_LABEL[status]}`}
-                          {` · ${original.reserved_qty} reserved`}
                         </span>
                       )}
                       {[rowError(row, "variants"), rowError(row, "id"), ...extra]

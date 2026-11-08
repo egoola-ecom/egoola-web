@@ -160,12 +160,7 @@ export function SkuTable({ listing }: { listing: ListingCore }) {
                   {sku.stock_qty == null ? (
                     <span className={styles.secondaryText}>Not tracked</span>
                   ) : (
-                    <>
-                      {sku.stock_qty}
-                      {sku.reserved_qty > 0 && (
-                        <span className={styles.secondaryText}> ({sku.reserved_qty} reserved)</span>
-                      )}
-                    </>
+                    sku.stock_qty
                   )}
                 </td>
                 <td>

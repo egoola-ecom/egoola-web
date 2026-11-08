@@ -98,7 +98,6 @@ export interface ListingSku {
   is_discount_active: boolean;
   /** null = stock is not tracked. */
   stock_qty: number | null;
-  reserved_qty: number;
   is_active: boolean;
   variants: ListingSkuVariant[];
 }
