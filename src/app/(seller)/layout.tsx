@@ -4,8 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ActorTopbar } from "@/components/actor-topbar";
+import admin from "@/app/(admin)/admin/(protected)/admin-shell.module.css";
 import styles from "@/components/seller-form/seller-form.module.css";
-import { AuthError, clearSession } from "@/lib/auth";
+import { AuthError, clearSession, logout } from "@/lib/auth";
 import { SellerMe, getSellerMe } from "@/lib/seller-me-api";
 import { useAuthGuard } from "@/lib/use-auth-guard";
 import { describeError } from "@/lib/use-managed-list";
@@ -59,19 +60,67 @@ const JOBS_HREF = "/seller/jobs";
 const BIDS_HREF = "/seller/bids";
 const ORDERS_HREF = "/seller/orders";
 
-/** The second row under the Jobs tab. */
-const JOBS_SUBTABS = [
-  { href: JOBS_HREF, label: "Job board" },
-  { href: `${JOBS_HREF}/mine`, label: "My jobs" },
-  { href: BIDS_HREF, label: "My bids" },
+const JOBS_MINE_HREF = `${JOBS_HREF}/mine`;
+
+interface NavLeaf {
+  href: string;
+  label: string;
+}
+
+/** A group has no page of its own: it only opens its children. `prefixes` are
+ * the paths its pages live under, so it stays open while one of them is shown. */
+interface NavGroup {
+  label: string;
+  key: string;
+  prefixes: string[];
+  children: NavLeaf[];
+}
+
+type NavItem = NavLeaf | NavGroup;
+
+function isGroup(item: NavItem): item is NavGroup {
+  return "children" in item;
+}
+
+/** What a seller who can operate sees. Everyone else gets only the last two
+ * entries (see `SellerLayout`). */
+const OPERATE_NAV: NavItem[] = [
+  { href: "/seller", label: "Dashboard" },
+  {
+    label: "Listing",
+    key: "listing",
+    prefixes: [LISTING_HREF, GIGS_HREF],
+    children: [
+      { href: LISTING_HREF, label: "Product" },
+      { href: GIGS_HREF, label: "Gigs" },
+    ],
+  },
+  {
+    label: "Jobs",
+    key: "jobs",
+    prefixes: [JOBS_HREF, BIDS_HREF],
+    children: [
+      { href: JOBS_HREF, label: "Job board" },
+      { href: JOBS_MINE_HREF, label: "My jobs" },
+      { href: BIDS_HREF, label: "My bids" },
+    ],
+  },
+  { href: ORDERS_HREF, label: "Orders" },
 ];
 
-/** The second row under the Listing tab. A new product or gig is made with the
- * Create button on its own list page, so there are no extra entries. */
-const LISTING_SUBTABS = [
-  { href: LISTING_HREF, label: "Product" },
-  { href: GIGS_HREF, label: "Gigs" },
+const ACCOUNT_NAV: NavItem[] = [
+  { href: "/seller/profile", label: "My profile" },
+  { href: "/seller/password", label: "Password" },
 ];
+
+/** "Job board" also covers a job's own page; "Dashboard" is only /seller. */
+function isNavActive(pathname: string, href: string): boolean {
+  if (href === "/seller") return pathname === href;
+  if (href === JOBS_HREF) {
+    return pathname.startsWith(href) && !pathname.startsWith(JOBS_MINE_HREF);
+  }
+  return pathname.startsWith(href);
+}
 
 export default function SellerLayout({
   children,
@@ -81,6 +130,7 @@ export default function SellerLayout({
   const { session, checked } = useAuthGuard("seller", "/login");
   const [me, setMeState] = useState<SellerMe | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [toggled, setToggled] = useState<Record<string, boolean>>({});
 
   const handleAuthError = useCallback(
     (err: unknown) => {
@@ -127,90 +177,87 @@ export default function SellerLayout({
   }
 
   // Everything that is not the seller's own profile needs verified AND active.
-  const tabs = [
-    ...(me.can_operate
-      ? [
-          { href: "/seller", label: "Dashboard" },
-          // "Listing" opens Product; Product and Gigs are its second row.
-          { href: LISTING_HREF, label: "Listing" },
-          { href: JOBS_HREF, label: "Jobs" },
-          { href: ORDERS_HREF, label: "Orders" },
-        ]
-      : []),
-    { href: "/seller/profile", label: "My profile" },
-    { href: "/seller/password", label: "Password" },
-  ];
+  const items = [...(me.can_operate ? OPERATE_NAV : []), ...ACCOUNT_NAV];
 
-  const inListing = pathname.startsWith(LISTING_HREF) || pathname.startsWith(GIGS_HREF);
-  const inJobs = pathname.startsWith(JOBS_HREF) || pathname.startsWith(BIDS_HREF);
-  const inOrders = pathname.startsWith(ORDERS_HREF);
-  // The job board's own page and a job's page are both "Job board"; My jobs and
-  // My bids have their own paths.
-  const jobsSubtabActive = (tab: (typeof JOBS_SUBTABS)[number]) =>
-    tab.href === JOBS_HREF
-      ? inJobs && !pathname.startsWith(`${JOBS_HREF}/mine`) && !pathname.startsWith(BIDS_HREF)
-      : pathname.startsWith(tab.href);
+  function renderLeaf(leaf: NavLeaf, sub: boolean) {
+    return (
+      <Link
+        key={leaf.href}
+        href={leaf.href}
+        className={`${admin.navLink} ${sub ? admin.navSubLink : ""} ${
+          isNavActive(pathname, leaf.href) ? admin.navLinkActive : ""
+        }`}
+      >
+        {leaf.label}
+      </Link>
+    );
+  }
 
   return (
     <SellerContext.Provider value={{ me, setMe: setMeState, reload, handleAuthError }}>
-      <ActorTopbar
-        session={{ ...session, name: me.name }}
-        actorType="seller"
-        loginPath="/login"
-      />
-      <div className={shell.page}>
-        <div className={`${shell.wrap} ${inListing || inJobs || inOrders ? shell.wrapWide : ""}`}>
-          <StatusBanner me={me} />
-          <nav className={shell.tabs} aria-label="Seller sections">
-            {tabs.map((tab) => (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className={`${shell.tab} ${
-                  (tab.href === "/seller"
-                    ? pathname === "/seller"
-                    : tab.href === LISTING_HREF
-                      ? inListing
-                      : tab.href === JOBS_HREF
-                        ? inJobs
-                        : pathname.startsWith(tab.href))
-                    ? shell.tabActive
-                    : ""
-                }`}
-              >
-                {tab.label}
-              </Link>
-            ))}
+      <div className={admin.shell}>
+        <aside className={admin.sidebar}>
+          <div className={admin.logoRow}>
+            <span className={admin.logo}>
+              <span className={admin.logoDark}>eg</span>
+              <span className={admin.logoGreen}>oola</span>
+            </span>
+            <span className={admin.badge}>Seller Panel</span>
+          </div>
+          <nav className={admin.nav} aria-label="Seller sections">
+            {items.map((item) => {
+              if (!isGroup(item)) return renderLeaf(item, false);
+              const inGroup = item.prefixes.some((prefix) => pathname.startsWith(prefix));
+              // A group follows the page until the seller clicks it.
+              const open = toggled[item.key] ?? inGroup;
+              return (
+                <div key={item.key}>
+                  <button
+                    type="button"
+                    className={`${admin.navLink} ${admin.navGroup} ${
+                      inGroup ? admin.navGroupActive : ""
+                    }`}
+                    aria-expanded={open}
+                    aria-controls={`nav-${item.key}`}
+                    onClick={() => setToggled({ ...toggled, [item.key]: !open })}
+                  >
+                    <span>{item.label}</span>
+                    <span
+                      className={`${admin.navChevron} ${open ? admin.navChevronOpen : ""}`}
+                      aria-hidden="true"
+                    >
+                      ▸
+                    </span>
+                  </button>
+                  {open && (
+                    <div id={`nav-${item.key}`} className={admin.navSub}>
+                      {item.children.map((child) => renderLeaf(child, true))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </nav>
-          {inListing && me.can_operate && (
-            <nav className={shell.subTabs} aria-label="Listing sections">
-              {LISTING_SUBTABS.map((tab) => (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  className={`${shell.subTab} ${
-                    pathname.startsWith(tab.href) ? shell.subTabActive : ""
-                  }`}
-                >
-                  {tab.label}
-                </Link>
-              ))}
-            </nav>
-          )}
-          {inJobs && me.can_operate && (
-            <nav className={shell.subTabs} aria-label="Job sections">
-              {JOBS_SUBTABS.map((tab) => (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  className={`${shell.subTab} ${jobsSubtabActive(tab) ? shell.subTabActive : ""}`}
-                >
-                  {tab.label}
-                </Link>
-              ))}
-            </nav>
-          )}
-          {children}
+        </aside>
+
+        <div className={admin.main}>
+          <header className={admin.topbar}>
+            <span className={admin.userName}>{me.name}</span>
+            <button
+              type="button"
+              className={admin.logoutButton}
+              onClick={() => {
+                logout("seller");
+                router.replace("/login");
+              }}
+            >
+              Log out
+            </button>
+          </header>
+          <main className={admin.content}>
+            <StatusBanner me={me} />
+            {children}
+          </main>
         </div>
       </div>
     </SellerContext.Provider>
