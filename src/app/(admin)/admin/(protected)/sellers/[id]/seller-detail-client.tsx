@@ -168,7 +168,7 @@ export function SellerDetailClient({ id, from }: { id: number; from?: string }) 
       )}
 
       {/* Keyed by the decision state, so the panel's own form fields start
-          fresh after every approve / reject / suspend. */}
+          fresh after every verification or account status change. */}
       <VerificationPanel
         key={`${seller.verification_status}|${seller.status}|${seller.verification_logs.length}`}
         seller={seller}

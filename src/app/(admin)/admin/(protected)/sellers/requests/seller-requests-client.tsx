@@ -56,7 +56,7 @@ export function SellerRequestsClient() {
           </h1>
           <p className={styles.subtitle}>
             Sellers who signed up themselves and are waiting for an admin. Open a request to
-            check the documents, then approve or reject it.
+            check the documents, then set the verification to Verified or Rejected.
           </p>
         </div>
       </div>
