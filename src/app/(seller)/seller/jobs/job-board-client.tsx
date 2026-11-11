@@ -188,8 +188,8 @@ export function JobBoardClient() {
               [
                 ["Posted from", createdFrom, setCreatedFrom],
                 ["Posted to", createdTo, setCreatedTo],
-                ["Needed from", requestedFrom, setRequestedFrom],
-                ["Needed to", requestedTo, setRequestedTo],
+                ["Opened for bids from", requestedFrom, setRequestedFrom],
+                ["Opened for bids to", requestedTo, setRequestedTo],
               ] as const
             ).map(([label, value, setValue]) => (
               <div key={label} className={management.field}>

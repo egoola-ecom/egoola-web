@@ -61,6 +61,7 @@ const BIDS_HREF = "/seller/bids";
 const ORDERS_HREF = "/seller/orders";
 
 const JOBS_MINE_HREF = `${JOBS_HREF}/mine`;
+const ORDERS_GIGS_HREF = `${ORDERS_HREF}/gigs`;
 
 interface NavLeaf {
   href: string;
@@ -105,7 +106,15 @@ const OPERATE_NAV: NavItem[] = [
       { href: BIDS_HREF, label: "My bids" },
     ],
   },
-  { href: ORDERS_HREF, label: "Orders" },
+  {
+    label: "Orders",
+    key: "orders",
+    prefixes: [ORDERS_HREF],
+    children: [
+      { href: ORDERS_HREF, label: "Products" },
+      { href: ORDERS_GIGS_HREF, label: "Gigs" },
+    ],
+  },
 ];
 
 const ACCOUNT_NAV: NavItem[] = [
@@ -118,6 +127,10 @@ function isNavActive(pathname: string, href: string): boolean {
   if (href === "/seller") return pathname === href;
   if (href === JOBS_HREF) {
     return pathname.startsWith(href) && !pathname.startsWith(JOBS_MINE_HREF);
+  }
+  // Product orders (and each order's own page) are under /seller/orders; gig orders have their own page.
+  if (href === ORDERS_HREF) {
+    return pathname.startsWith(href) && !pathname.startsWith(ORDERS_GIGS_HREF);
   }
   return pathname.startsWith(href);
 }

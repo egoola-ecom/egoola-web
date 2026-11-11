@@ -123,7 +123,7 @@ export function TierBuilder({
                   />
                   {priceError && <p className={styles.fieldError}>{priceError}</p>}
                 </div>
-                {withDuration && (
+                {withDuration && !fixed && (
                   <div className={styles.field}>
                     <label className={styles.label} htmlFor={`${idPrefix}-duration-${row.key}`}>
                       Duration (units)
@@ -134,8 +134,7 @@ export function TierBuilder({
                       type="number"
                       min="1"
                       step="1"
-                      disabled={fixed}
-                      value={fixed ? "1" : row.duration}
+                      value={row.duration}
                       onChange={(event) => patch(row.key, { duration: event.target.value })}
                     />
                     {durationError && <p className={styles.fieldError}>{durationError}</p>}
