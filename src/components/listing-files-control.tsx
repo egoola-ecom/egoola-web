@@ -357,7 +357,7 @@ export function ListingFilesControl(props: Props) {
           </div>
         )}
         <p className={management.fieldHint}>
-          JPG, PNG, WEBP, GIF, MP4 or PDF. Images up to 2 MB, videos up to 10 MB, PDFs up to 30 MB.
+          JPG, PNG, WEBP, GIF, MP4 or PDF. Images up to 2 MB, videos up to 10 MB, PDFs up to {scope === "seller" ? 10 : 30} MB.
           {scope === "seller" &&
             ` ${SELLER_MEDIA_MAX_PER_REQUEST} at a time and ${SELLER_MEDIA_MAX_PER_LISTING} per listing.`}
         </p>

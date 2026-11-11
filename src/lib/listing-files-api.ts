@@ -94,6 +94,9 @@ export const GALLERY_TYPES = [
 export const GALLERY_ACCEPT = ".jpg,.jpeg,.png,.webp,.gif,.mp4,.pdf";
 export const SELLER_MEDIA_MAX_PER_REQUEST = 10;
 export const SELLER_MEDIA_MAX_PER_LISTING = 20;
+/** The server holds a seller's gallery PDFs and videos to 10 MB (images stay at
+ * the 2 MB image limit), tighter than the generic 30 MB for "other" files. */
+export const SELLER_GALLERY_MAX_MB = 10;
 
 /** Returns the message to show, or null when the thumbnail is fine. */
 export function checkThumbnailFile(file: File): string | null {
@@ -119,6 +122,8 @@ export function checkGalleryPick(
       problems.push(`${file.name}: only JPG, PNG, WEBP, GIF, MP4 or PDF files are accepted.`);
     } else if (fileSizeProblem(file)) {
       problems.push(fileSizeProblem(file) as string);
+    } else if (scope === "seller" && file.size > SELLER_GALLERY_MAX_MB * 1024 * 1024) {
+      problems.push(`${file.name} is too big. Each file must be ${SELLER_GALLERY_MAX_MB} MB or smaller.`);
     } else if (scope === "seller" && queued + accepted.length >= SELLER_MEDIA_MAX_PER_REQUEST) {
       problems.push(`${file.name}: you can add up to ${SELLER_MEDIA_MAX_PER_REQUEST} files at a time.`);
     } else if (

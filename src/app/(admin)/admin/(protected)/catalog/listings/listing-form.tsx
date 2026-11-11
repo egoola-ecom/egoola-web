@@ -177,7 +177,7 @@ export function ListingForm({
   const [categoryId, setCategoryId] = useState<number | null>(initial?.category ?? null);
   const isSeller = variant === "seller";
   const [listingType, setListingType] = useState<ListingType | "">(
-    initial?.listing_type ?? (isSeller ? "general" : ""),
+    initial?.listing_type ?? (isSeller && mode === "create" ? "general" : ""),
   );
   const [ownerKind, setOwnerKind] = useState<ListingOwnerKind>(ownerKindOf(initial));
   const [ownerId, setOwnerId] = useState<number | null>(initial?.seller ?? initial?.buyer ?? null);
@@ -410,7 +410,7 @@ export function ListingForm({
             value={listingType}
             onChange={(event) => setListingType(event.target.value as ListingType | "")}
           >
-            {!isSeller && <option value="">Not set</option>}
+            {(!isSeller || (mode === "edit" && !initial?.listing_type)) && <option value="">Not set</option>}
             {LISTING_TYPE_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}

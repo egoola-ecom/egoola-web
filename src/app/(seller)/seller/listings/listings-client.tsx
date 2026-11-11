@@ -340,7 +340,7 @@ export function ListingsClient() {
               <th>Category</th>
               <th>Price</th>
               <th>Status</th>
-              <th>Updated</th>
+              <th>Dates</th>
               <th></th>
             </tr>
           </thead>
@@ -395,7 +395,14 @@ export function ListingsClient() {
                         <div className={management.secondaryText}>Reason: {item.note}</div>
                       )}
                   </td>
-                  <td className={management.secondaryText}>{formatDateTime(item.updated_at)}</td>
+                  <td className={management.secondaryText}>
+                    <div>Created: {formatDateTime(item.created_at)}</div>
+                    <div>
+                      Sent for review:{" "}
+                      {item.requested_at ? formatDateTime(item.requested_at) : "Not sent yet"}
+                    </div>
+                    <div>Last changed: {formatDateTime(item.updated_at)}</div>
+                  </td>
                   <td>
                     <div className={management.rowActions}>
                       <Link href={`/seller/listings/${item.id}`} className={management.actionButton}>
