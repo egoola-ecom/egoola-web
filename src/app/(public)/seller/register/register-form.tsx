@@ -14,6 +14,7 @@ import { publicGeographyLoaders } from "@/lib/geography-api";
 import {
   REGISTER_IMAGE_TYPES,
   REGISTER_MAX_FILES,
+  REGISTER_MAX_FILE_SIZE_MB,
   registerSeller,
 } from "@/lib/seller-register-api";
 import { useGeographySelection } from "@/lib/use-geography-selection";
@@ -339,8 +340,8 @@ export function RegisterForm() {
           Identity documents<span className={styles.required}>*</span>
         </h2>
         <p className={styles.sectionHint}>
-          Upload at least one NID. If it has a front and a back, add both. JPG, PNG, WEBP or PDF.
-          Images up to 2 MB, PDFs up to 30 MB, up to {REGISTER_MAX_FILES} files.
+          Upload at least one NID. If it has a front and a back, add both. JPG, PNG, WEBP or PDF,
+          up to {REGISTER_MAX_FILE_SIZE_MB} MB each, up to {REGISTER_MAX_FILES} files.
         </p>
         <DocumentRows docs={docs} />
         {err("media_for") && (

@@ -4,9 +4,10 @@ import { useRef, useState } from "react";
 import {
   REGISTER_DOCUMENT_TYPES,
   REGISTER_MAX_FILES,
+  REGISTER_MAX_FILE_SIZE_MB,
   RegisterMediaFor,
 } from "@/lib/seller-register-api";
-import { fileSizeProblem, formatSize } from "@/lib/file-limits";
+import { formatSize } from "@/lib/file-limits";
 import styles from "./seller-form.module.css";
 import login from "@/app/(public)/login/login.module.css";
 
@@ -31,13 +32,18 @@ export interface DocRow {
 
 export { formatSize };
 
-/** The first reason a file cannot be sent, or null when it is fine. The server
- * checks the same rules and stays the authority. */
+/** The first reason a file cannot be sent, or null when it is fine. Every seller
+ * KYC document (image or PDF alike) shares one flat size limit — not the
+ * image/video/other split in `file-limits.ts`, which is for other upload
+ * screens. The server checks the same rules and stays the authority. */
 export function fileProblem(file: File, allowed: string[], allowedText: string): string | null {
   if (!allowed.includes(file.type)) {
     return `${file.name}: only ${allowedText} files are accepted.`;
   }
-  return fileSizeProblem(file);
+  if (file.size > REGISTER_MAX_FILE_SIZE_MB * 1024 * 1024) {
+    return `${file.name} is ${formatSize(file.size)}. Each file must be ${REGISTER_MAX_FILE_SIZE_MB} MB or smaller.`;
+  }
+  return null;
 }
 
 function without(record: Record<number, string>, id: number): Record<number, string> {

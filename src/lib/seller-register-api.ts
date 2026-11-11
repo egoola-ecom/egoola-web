@@ -8,6 +8,7 @@ export type RegisterMediaFor = "nid" | "birth_certificate" | "certificate" | "ot
 /** Limits the server enforces. The form mirrors them so a mistake is caught
  * before the upload — the server stays the authority. */
 export const REGISTER_MAX_FILES = 10;
+export const REGISTER_MAX_FILE_SIZE_MB = 5;
 export const REGISTER_DOCUMENT_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 export const REGISTER_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
@@ -58,8 +59,9 @@ export interface SellerRegisterResult {
  * Public seller sign-up: `POST /auth/seller/register/`, multipart, NO token.
  * A plain `fetch` on purpose — never `authFetch` (there is no session) and
  * never a hand-set Content-Type (the browser adds the multipart boundary).
- * Success is a 201 without a token: the seller cannot log in until an admin
- * approves the account.
+ * Success is a 201 without a token, but the seller can log in right away
+ * (profile-only tier) to finish their profile while it's reviewed — a
+ * seller's account status never blocks login, only what they can do after.
  *
  * Documents go as `media_for` + `media_file` PAIRS matched by position, so
  * each `media_for` is appended right before its file.
