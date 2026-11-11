@@ -1,7 +1,7 @@
 "use client";
 
 import { SIZE_HINT_IMAGE, takeFile } from "@/lib/file-limits";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   BUSINESS_ERROR_KEYS,
   BUSINESS_OPTIONAL,
@@ -34,7 +34,7 @@ import {
   resubmitSeller,
   updateSellerMe,
 } from "@/lib/seller-me-api";
-import { REGISTER_IMAGE_TYPES, REGISTER_MAX_FILES } from "@/lib/seller-register-api";
+import { REGISTER_IMAGE_TYPES, REGISTER_MAX_FILES, REGISTER_MAX_FILE_SIZE_MB } from "@/lib/seller-register-api";
 import { useGeographySelection } from "@/lib/use-geography-selection";
 import { FieldErrors, parseFieldErrors } from "@/lib/use-managed-list";
 import shell from "../../seller-shell.module.css";
@@ -503,7 +503,7 @@ function DocumentsCard() {
     <div className={styles.card} style={{ marginTop: "1.25rem" }}>
       <h2 className={styles.sectionTitle}>Documents</h2>
       <p className={styles.sectionHint}>
-        JPG, PNG, WEBP or PDF. Images up to 2 MB, PDFs up to 30 MB, up to {REGISTER_MAX_FILES} files at a time.
+        JPG, PNG, WEBP or PDF, up to {REGISTER_MAX_FILE_SIZE_MB} MB each, up to {REGISTER_MAX_FILES} files at a time.
         Keep at least one NID.
       </p>
 
@@ -689,13 +689,26 @@ function ResubmitCard() {
 // ---------------------------------------------------------------------------
 
 export function ProfileClient() {
-  const { me } = useSeller();
+  const { me, reload } = useSeller();
   // The Locked tier (Verified but Inactive/Suspended) reads only.
   const locked = me.can_edit_profile === false;
   // The details form starts from the saved profile; after a save it starts
   // over from the answer, so every field shows what the server stored.
   const [version, setVersion] = useState(0);
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
+
+  // Every time the seller opens the profile, ask the server again: an admin
+  // may have approved, rejected, paused or edited this seller since the last
+  // load. The form starts over from the fresh answer.
+  useEffect(() => {
+    let cancelled = false;
+    void reload().then((fresh) => {
+      if (!cancelled && fresh) setVersion((v) => v + 1);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [reload]);
 
   return (
     <div>
