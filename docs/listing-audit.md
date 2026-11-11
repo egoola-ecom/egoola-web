@@ -186,7 +186,7 @@ Backend: local throwaway database `egoola` (`createdb`, `migrate`, seeded accoun
 ## 13. Open questions and notes
 
 - **T3 (kept Partial, on purpose):** the checklist says the thumbnail control is enabled after the first save. The create forms let the user pick the picture first and upload it right after the first save (POST, then PUT; a failed upload keeps the listing and opens its edit page with the error). Say if you want the strict version (control hidden until the first save).
-- **Seller currency:** the seller forms have no currency input because the seller API has no `currency` field (see seller-api-guide section 6.2); the admin forms have one.
+- **Seller currency:** the seller forms have no currency input because the seller API has no `currency` field (see seller-listing-api-guide section 3); the admin forms have one.
 - **Backend:** no backend bug found. Behaviour that differs from a plain reading of the docs: a 400 for an oversize file made of zeros reports "not a valid image" (the image check runs first), so the size message in the UI comes from the client check.
 - **Refresh:** `authFetch` now reuses a newer stored access token instead of refreshing a second time when two requests fail together.
 

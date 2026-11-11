@@ -6,7 +6,7 @@ import { ENDPOINTS } from "./endpoints";
 
 // ---------------------------------------------------------------------------
 // A seller's own gigs (service offers): `/seller/gigs/`
-// (docs/seller-api-guide.md §6b, docs/listing-complete-guide.md §14.5). The
+// (docs/seller-gig-api-guide.md, docs/listing-complete-guide.md §14.5). The
 // same access and review rules as the seller's products:
 //   - Only a seller who can operate (verified AND active); another seller's
 //     gig, a product or an admin-owned gig is a 404.

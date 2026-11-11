@@ -5,7 +5,7 @@ import type { JobBudget, JobCategory, JobStatus } from "./admin-jobs-api";
 import { ENDPOINTS } from "./endpoints";
 
 // ---------------------------------------------------------------------------
-// The seller's job board and bids (docs/seller-api-guide.md §6c,
+// The seller's job board and bids (docs/seller-job-bidding-api-guide.md,
 // docs/listing-complete-guide.md §16.8-16.9). Needs a seller who can operate
 // (verified AND active), otherwise 403. Every list is CURSOR paged
 // ({next, previous, results}, no `count`).

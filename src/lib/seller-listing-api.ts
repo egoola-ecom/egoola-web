@@ -10,7 +10,7 @@ import type {
 import { ENDPOINTS } from "./endpoints";
 
 // ---------------------------------------------------------------------------
-// A seller's own listings: `/seller/listings/` (docs/seller-api-guide.md §6).
+// A seller's own listings: `/seller/listings/` (docs/seller-listing-api-guide.md).
 // Only a seller who can operate (verified AND active) may call it; anyone else
 // gets 403 with a message that says which switch is holding them back.
 //   - Always the seller's own, never anybody else's (404).
