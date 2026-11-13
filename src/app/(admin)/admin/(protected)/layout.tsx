@@ -18,6 +18,9 @@ const PENDING_LISTINGS_HREF = "/admin/catalog/listings/requests";
 const GIGS_HREF = "/admin/gigs";
 const PENDING_GIGS_HREF = "/admin/gigs/requests";
 const JOBS_HREF = "/admin/jobs";
+const ORDERS_HREF = "/admin/orders";
+const CARTS_HREF = "/admin/carts";
+const ORDERS_GIGS_HREF = `${ORDERS_HREF}/gigs`;
 const BIDDING_HREF = "/admin/bidding";
 
 /** Which waiting-count a menu entry shows as a badge. */
@@ -58,9 +61,17 @@ const NAV_ITEMS: NavItem[] = [
     ],
   },
   { href: "/admin/buyers", label: "Buyers" },
-  { href: "/admin/carts", label: "Carts" },
   { href: "/admin/wishlists", label: "Wishlists" },
-  { href: "/admin/orders", label: "Orders" },
+  {
+    label: "Orders",
+    key: "orders",
+    prefixes: [ORDERS_HREF, CARTS_HREF],
+    children: [
+      { href: ORDERS_HREF, label: "Products" },
+      { href: ORDERS_GIGS_HREF, label: "Gigs" },
+      { href: CARTS_HREF, label: "Carts" },
+    ],
+  },
   { href: "/admin/payment-gateways", label: "Payment Gateways" },
   { href: "/admin/geography", label: "Geography" },
   { href: CATALOG_HREF, label: "Catalog" },
@@ -113,6 +124,9 @@ function isNavActive(pathname: string, href: string): boolean {
   }
   if (href === LISTINGS_HREF) {
     return pathname.startsWith(href) && !pathname.startsWith(PENDING_LISTINGS_HREF);
+  }
+  if (href === ORDERS_HREF) {
+    return pathname.startsWith(href) && !pathname.startsWith(ORDERS_GIGS_HREF);
   }
   if (href === GIGS_HREF) {
     return pathname.startsWith(href) && !pathname.startsWith(PENDING_GIGS_HREF);
