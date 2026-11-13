@@ -1883,7 +1883,13 @@
 .eg-shop .banner img {
     /* border-radius: 10px; */
     /* width: 1000px!important; */
-    height: 100%!important;
+    /* Standard wide hero (3:1): any uploaded image is cropped to fit, so a tall
+       one can't push the page content down. */
+    display: block;
+    width: 100%;
+    height: auto !important;
+    aspect-ratio: 3 / 1;
+    object-fit: cover;
 }
 
 .eg-shop .banner-content {

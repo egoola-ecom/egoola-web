@@ -213,3 +213,16 @@ export interface OffsetResult<T> {
   previous: string | null;
   results: T[];
 }
+
+/** One live banner from `GET /public/cms/banners/`. `link_url` is a site path,
+ * a full URL, or empty; `image_url` is server-relative. */
+export interface PublicBanner {
+  id: number;
+  placement: "hero" | "sidebar" | "category";
+  heading: string | null;
+  small_heading: string | null;
+  link_url: string | null;
+  image_url: string | null;
+  category: number | null;
+  sort_order: number;
+}

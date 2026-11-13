@@ -37,6 +37,7 @@ export const ENDPOINTS = {
       thanas: "/public/geography/thanas/",
     },
     paymentGateways: "/public/orders/payment-gateways/",
+    banners: "/public/cms/banners/",
   },
 
   buyer: {

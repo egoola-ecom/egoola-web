@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { listBanners } from "@/lib/buyer/public-banners-api";
 import { listCategories } from "@/lib/buyer/public-categories-api";
 import { listGigs } from "@/lib/buyer/public-gigs-api";
 import { listCities, listThanas } from "@/lib/buyer/public-geography-api";
-import type { GeoRow, GigRow, PublicCategory } from "@/lib/buyer/types";
+import type { GeoRow, GigRow, PublicBanner, PublicCategory } from "@/lib/buyer/types";
 import { resolveMediaUrl } from "@/lib/env";
 import { GigCard } from "./gig-card";
 import { OwlCarousel } from "./owl-carousel";
@@ -21,7 +22,27 @@ function TwoLine({ name }: { name: string }) {
   return <>{words[0]}<br />{words[1]}</>;
 }
 
-const BANNERS = ["/shop/images/banner/1708268387Jz24NpRjwA.jpg", "/shop/images/banner/1708268419HRe2ONLY08.jpg"];
+/** The slide image, wrapped in a link only when the banner has somewhere to go. */
+function BannerSlide({ banner }: { banner: PublicBanner }) {
+  const href = banner.link_url?.trim();
+  const image = (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={resolveMediaUrl(banner.image_url) ?? "/shop/images/no-img.jpg"} alt={banner.heading?.trim() || "Banner"} />
+  );
+  return (
+    <div className="banner">
+      {!href ? (
+        image
+      ) : href.startsWith("/") ? (
+        <Link href={href}>{image}</Link>
+      ) : (
+        <a href={href} target="_blank" rel="noopener noreferrer">
+          {image}
+        </a>
+      )}
+    </div>
+  );
+}
 
 /** The buyer home (services side), laid out like the legacy home page. */
 export function HomeScreen() {
@@ -33,6 +54,7 @@ export function HomeScreen() {
   const [gigs, setGigs] = useState<GigRow[]>([]);
   const [total, setTotal] = useState(0);
   const [seeAll, setSeeAll] = useState(false);
+  const [banners, setBanners] = useState<PublicBanner[]>([]);
 
   useEffect(() => {
     // Each block loads on its own: one failing call must not blank the page.
@@ -49,6 +71,9 @@ export function HomeScreen() {
       .catch(() => undefined);
     void listCities({ country: 126 })
       .then((res) => setCities(res.results))
+      .catch(() => undefined);
+    void listBanners({ placement: "hero" })
+      .then(setBanners)
       .catch(() => undefined);
     void listGigs({ page_size: 12 })
       .then((feed) => {
@@ -156,13 +181,11 @@ export function HomeScreen() {
               </form>
             </div>
 
+            {banners.length > 0 && (
             <div className="rounded banner-area p-2">
               <OwlCarousel id="banner" autoplayMs={5000}>
-                {BANNERS.map((src) => (
-                  <div key={src} className="banner">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={src} alt="Banner" />
-                  </div>
+                {banners.map((banner) => (
+                  <BannerSlide key={banner.id} banner={banner} />
                 ))}
               </OwlCarousel>
               <div className="d-flex banner-area-btm justify-content-between pt-2">
@@ -177,6 +200,7 @@ export function HomeScreen() {
                 ))}
               </div>
             </div>
+            )}
             <div className="mx-0 bg-white rs-link d-flex justify-content-between text-center px-3 py-4">
               {PRODUCT_TYPES.map((type) => (
                 <Link key={type.slug} href={`${SHOP.products}/${type.slug}`} className="btn btn-success feature-btn-link font-weight-bold px-4 py-2">
