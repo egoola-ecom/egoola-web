@@ -1,4 +1,4 @@
-import type { PaymentStatus, OrderStatus } from "@/lib/buyer/buyer-orders-api";
+import type { PaymentStatus, OrderStatus, OrderType } from "@/lib/buyer/buyer-orders-api";
 
 export const ORDER_STATUS: Record<OrderStatus, { label: string; badge: string }> = {
   pending: { label: "Pending", badge: "badge-warning" },
@@ -45,4 +45,12 @@ export function dateTimeText(iso: string): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+export function OrderTypeBadge({ type }: { type: OrderType }) {
+  return (
+    <span className="badge badge-light border p-2" data-testid="order-type">
+      {type === "service" ? "Service" : "Product"}
+    </span>
+  );
 }

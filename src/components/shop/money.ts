@@ -11,3 +11,9 @@ export const PRICE_UNIT: Record<string, string> = {
   monthly: "month",
   fixed: "job",
 };
+
+/** "3 hours", "1 job". `fixed` is one job whatever the count. */
+export function durationText(count: number, priceType: string | null): string {
+  const unit = (priceType && PRICE_UNIT[priceType]) || "unit";
+  return `${count} ${unit}${count === 1 ? "" : "s"}`;
+}

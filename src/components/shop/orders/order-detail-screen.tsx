@@ -15,9 +15,9 @@ import { placeText } from "@/lib/buyer/buyer-addresses-api";
 import { isSignedOut } from "@/lib/buyer/cart-errors";
 import { loginUrlFor } from "@/lib/buyer/login-redirect";
 import { isNotFound } from "@/lib/buyer/public-fetch";
-import { taka } from "../money";
+import { durationText, PRICE_UNIT, taka } from "../money";
 import { SHOP } from "../shop-links";
-import { ORDER_STATUS, OrderStatusBadge, PAYMENT_STATUS, PaymentStatusBadge, dateTimeText } from "./order-status";
+import { ORDER_STATUS, OrderStatusBadge, OrderTypeBadge, PAYMENT_STATUS, PaymentStatusBadge, dateTimeText } from "./order-status";
 
 function Timeline<S extends string>({
   rows,
@@ -130,7 +130,8 @@ export function OrderDetailScreen({ id }: { id: number }) {
       </p>
       <div className="d-flex justify-content-between align-items-center flex-wrap mb-3">
         <h4 className="mb-0">
-          Order #{order.id} <OrderStatusBadge status={order.status} />
+          Order #{order.id} <OrderStatusBadge status={order.status} />{" "}
+          <OrderTypeBadge type={order.order_type} />
         </h4>
         {canCancel(order.status) && !cancelling && (
           <button type="button" className="btn btn-outline-danger" data-testid="cancel-order" onClick={() => setCancelling(true)}>
@@ -191,7 +192,7 @@ export function OrderDetailScreen({ id }: { id: number }) {
                   <tr>
                     <th>Item</th>
                     <th className="text-right">Price</th>
-                    <th className="text-right">{order.items.some((i) => i.qty == null) ? "Qty / duration" : "Qty"}</th>
+                    <th className="text-right">{order.order_type === "service" ? "Duration" : "Qty"}</th>
                     <th className="text-right">Total</th>
                   </tr>
                 </thead>
@@ -199,8 +200,19 @@ export function OrderDetailScreen({ id }: { id: number }) {
                   {order.items.map((item) => (
                     <tr key={item.id} data-testid="order-item">
                       <td>{item.title_snapshot}</td>
-                      <td className="text-right">{taka(item.price_snapshot)}</td>
-                      <td className="text-right">{item.qty ?? item.duration ?? "—"}</td>
+                      <td className="text-right">
+                        {taka(item.price_snapshot)}
+                        {item.qty == null && item.price_type_snapshot && item.price_type_snapshot !== "fixed" && (
+                          <small className="text-muted"> / {PRICE_UNIT[item.price_type_snapshot] ?? item.price_type_snapshot}</small>
+                        )}
+                      </td>
+                      <td className="text-right" data-testid="order-item-amount">
+                        {item.qty != null
+                          ? item.qty
+                          : item.duration != null
+                            ? durationText(item.duration, item.price_type_snapshot)
+                            : "—"}
+                      </td>
                       <td className="text-right">{taka(item.subtotal)}</td>
                     </tr>
                   ))}

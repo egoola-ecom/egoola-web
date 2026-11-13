@@ -12,7 +12,7 @@ import { notifyCartChanged } from "@/lib/buyer/store/cart-badge";
 import { AddressForm } from "../addresses/address-form";
 import { useQueryParams } from "../browse/use-query-params";
 import { cartUrl } from "../browse/cart-status";
-import { taka } from "../money";
+import { durationText, taka } from "../money";
 import { SHOP } from "../shop-links";
 
 interface Loaded {
@@ -195,7 +195,8 @@ export function CheckoutScreen() {
             {cart.items.map((item) => (
               <div key={item.id} className="d-flex justify-content-between small mb-1">
                 <span>
-                  {item.listing.title} × {item.qty ?? item.duration ?? 1}
+                  {item.listing.title} ×{" "}
+                  {item.qty != null ? item.qty : durationText(item.duration ?? 1, item.listing_sku.price_type)}
                 </span>
                 <span>{item.line_subtotal != null ? taka(item.line_subtotal) : "—"}</span>
               </div>
