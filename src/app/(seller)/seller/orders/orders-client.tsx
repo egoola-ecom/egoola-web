@@ -17,7 +17,8 @@ const STATUS_FILTER = ["pending", "accepted", "in_progress", "shipped", "deliver
 
 /** Every order placed with this shop, newest first. Cursor paged ("Load more"),
  * so there is no total count. */
-export function OrdersClient() {
+export function OrdersClient({ type }: { type: "product" | "service" }) {
+  const gigs = type === "service";
   const fail = useListingFailure();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
@@ -26,8 +27,8 @@ export function OrdersClient() {
 
   const searchTerm = useDebounced(search.trim(), 300);
   const filters = useMemo(
-    () => ({ status, created_from: from, created_to: to }),
-    [status, from, to],
+    () => ({ order_type: type, status, created_from: from, created_to: to }),
+    [type, status, from, to],
   );
 
   const { items, loading, loadingMore, error, hasMore, loadMore, refetch } = useCursorList<SellerOrderRow>(
@@ -51,9 +52,11 @@ export function OrdersClient() {
     <div>
       <div className={management.pageHeading}>
         <div>
-          <h1 className={shell.pageTitle}>Orders</h1>
+          <h1 className={shell.pageTitle}>{gigs ? "Gig orders" : "Product orders"}</h1>
           <p className={shell.pageText} style={{ marginBottom: 0 }}>
-            Orders buyers have placed with your shop. Open one to accept it and move it along.
+            {gigs
+              ? "Orders buyers have placed for your gigs. Open one to accept it and move it along."
+              : "Orders buyers have placed for your products. Open one to accept it and move it along."}
           </p>
         </div>
         <button type="button" className={management.actionButton} onClick={refetch} disabled={loading}>
@@ -138,7 +141,11 @@ export function OrdersClient() {
             ) : items.length === 0 ? (
               <tr>
                 <td colSpan={6} className={management.stateRow} data-testid="orders-empty">
-                  {anyFilter ? "No orders match these filters." : "No orders have been placed with your shop yet."}
+                  {anyFilter
+                    ? "No orders match these filters."
+                    : gigs
+                      ? "No one has ordered one of your gigs yet."
+                      : "No one has ordered one of your products yet."}
                 </td>
               </tr>
             ) : (

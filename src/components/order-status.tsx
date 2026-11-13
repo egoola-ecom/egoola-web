@@ -1,3 +1,4 @@
+import { PRICE_UNIT, durationText } from "@/components/shop/money";
 import management from "@/app/(admin)/admin/(protected)/management.module.css";
 import type { PaymentStatus } from "@/lib/buyer/buyer-orders-api";
 import type { SellerOrderStatus } from "@/lib/seller-order-api";
@@ -87,3 +88,16 @@ export const ALL_ORDER_STATUSES: SellerOrderStatus[] = [
   "completed",
   "disputed",
 ];
+
+/** The quantity cell of an order line: `qty` on a product, "3 hours" on a gig. */
+export function itemAmountText(item: { qty: number | null; duration: number | null; price_type_snapshot: string | null }): string {
+  if (item.qty != null) return String(item.qty);
+  if (item.duration != null) return durationText(item.duration, item.price_type_snapshot);
+  return "—";
+}
+
+/** "/ hour" after a gig's rate (nothing for a product or a fixed price). */
+export function itemRateUnit(item: { qty: number | null; price_type_snapshot: string | null }): string {
+  const type = item.price_type_snapshot;
+  return item.qty == null && type && type !== "fixed" ? ` / ${PRICE_UNIT[type] ?? type}` : "";
+}

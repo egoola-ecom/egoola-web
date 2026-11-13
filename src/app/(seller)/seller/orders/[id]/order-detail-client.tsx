@@ -23,6 +23,8 @@ import { useSeller } from "../../seller-context";
 import {
   ORDER_STATUS_LABEL,
   OrderStatusBadge,
+  itemAmountText,
+  itemRateUnit,
   PAYMENT_STATUS_LABEL,
   PaymentStatusBadge,
 } from "@/components/order-status";
@@ -164,11 +166,13 @@ export function OrderDetailClient({ id }: { id: number }) {
     }
   }
 
+  const backHref = order?.order_type === "service" ? "/seller/orders/gigs" : "/seller/orders";
+
   if (loading) return <p className={management.stateRow}>Loading…</p>;
   if (loadError || !order) {
     return (
       <div>
-        <Link href="/seller/orders" className={management.backLink}>
+        <Link href={backHref} className={management.backLink}>
           ← Back to orders
         </Link>
         <p className={management.errorBanner} data-testid="order-load-error">
@@ -186,7 +190,7 @@ export function OrderDetailClient({ id }: { id: number }) {
 
   return (
     <div>
-      <Link href="/seller/orders" className={management.backLink}>
+      <Link href={backHref} className={management.backLink}>
         ← Back to orders
       </Link>
 
@@ -249,7 +253,7 @@ export function OrderDetailClient({ id }: { id: number }) {
               <tr>
                 <th>Item</th>
                 <th>Price</th>
-                <th>Qty</th>
+                <th>{order.order_type === "service" ? "Duration" : "Qty"}</th>
                 <th>Total</th>
               </tr>
             </thead>
@@ -257,8 +261,11 @@ export function OrderDetailClient({ id }: { id: number }) {
               {order.items.map((item) => (
                 <tr key={item.id} data-testid="order-item">
                   <td className={management.primaryText}>{item.title_snapshot}</td>
-                  <td>{formatMoney(item.price_snapshot)}</td>
-                  <td>{item.qty ?? item.duration ?? "—"}</td>
+                  <td>
+                    {formatMoney(item.price_snapshot)}
+                    {itemRateUnit(item)}
+                  </td>
+                  <td>{itemAmountText(item)}</td>
                   <td>{formatMoney(item.subtotal)}</td>
                 </tr>
               ))}
