@@ -15,9 +15,9 @@ export type BannerStatus = "active" | "inactive";
 export interface BannerItem {
   id: number;
   placement: BannerPlacement;
-  heading: string;
-  small_heading: string;
-  link_url: string;
+  heading: string | null;
+  small_heading: string | null;
+  link_url: string | null;
   image_path: string | null;
   image_url: string | null;
   /** Sidebar banners only. */

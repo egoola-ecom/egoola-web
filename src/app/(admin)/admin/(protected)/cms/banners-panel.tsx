@@ -17,6 +17,7 @@ import { getCategoryParentChain } from "@/lib/category-api";
 import { AuthError, clearSession } from "@/lib/auth";
 import { resolveMediaUrl } from "@/lib/env";
 import { FieldErrors, parseFieldErrors, useManagedList } from "@/lib/use-managed-list";
+import { formatDateTime } from "../_shared/buyer-cell";
 import { fromLocalInput, toLocalInput } from "../_shared/datetime";
 import { CategoryParentPicker } from "../catalog/category-parent-picker";
 import { SIZE_HINT_IMAGE, takeFile } from "@/lib/file-limits";
@@ -49,12 +50,6 @@ const SCHEDULE_BADGE: Record<ScheduleState, string> = {
   expired: styles.badgeRed,
   inactive: styles.badgeGray,
 };
-
-function formatWindow(banner: BannerItem): string {
-  if (!banner.starts_at && !banner.ends_at) return "Always";
-  const fmt = (value: string) => new Date(value).toLocaleDateString();
-  return `${banner.starts_at ? fmt(banner.starts_at) : "…"} → ${banner.ends_at ? fmt(banner.ends_at) : "…"}`;
-}
 
 function BannerForm({
   initial,
@@ -182,7 +177,7 @@ function BannerForm({
             id="banner-heading"
             name="heading"
             className={styles.input}
-            defaultValue={initial?.heading}
+            defaultValue={initial?.heading ?? ""}
           />
           {err("heading")}
         </div>
@@ -195,7 +190,7 @@ function BannerForm({
             id="banner-small-heading"
             name="small_heading"
             className={styles.input}
-            defaultValue={initial?.small_heading}
+            defaultValue={initial?.small_heading ?? ""}
           />
           {err("small_heading")}
         </div>
@@ -209,7 +204,7 @@ function BannerForm({
             name="link_url"
             className={styles.input}
             placeholder="/categories/electronics"
-            defaultValue={initial?.link_url}
+            defaultValue={initial?.link_url ?? ""}
           />
           {err("link_url")}
         </div>
@@ -454,22 +449,27 @@ export function BannersPanel() {
             <tr>
               <th>Banner</th>
               <th>Placement</th>
+              <th>Link</th>
+              <th>Status</th>
               <th>Visibility</th>
-              <th>Schedule</th>
+              <th>Starts</th>
+              <th>Ends</th>
               <th>Order</th>
+              <th>Created</th>
+              <th>Updated</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className={styles.stateRow}>
+                <td colSpan={11} className={styles.stateRow}>
                   Loading…
                 </td>
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={6} className={styles.stateRow}>
+                <td colSpan={11} className={styles.stateRow}>
                   No banners found.
                 </td>
               </tr>
@@ -490,6 +490,10 @@ export function BannersPanel() {
                           {item.small_heading && (
                             <div className={styles.secondaryText}>{item.small_heading}</div>
                           )}
+                          <div className={styles.secondaryText}>
+                            #{item.id}
+                            {item.image_path ? ` · ${item.image_path}` : " · no image"}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -501,11 +505,28 @@ export function BannersPanel() {
                         </div>
                       )}
                     </td>
+                    <td className={styles.secondaryText}>
+                      {item.link_url ? (
+                        <a href={item.link_url} target="_blank" rel="noopener noreferrer">
+                          {item.link_url}
+                        </a>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td>
+                      <span className={`${styles.badge} ${item.status === "active" ? styles.badgeGreen : styles.badgeGray}`}>
+                        {item.status}
+                      </span>
+                    </td>
                     <td>
                       <span className={`${styles.badge} ${SCHEDULE_BADGE[state]}`}>{state}</span>
                     </td>
-                    <td className={styles.secondaryText}>{formatWindow(item)}</td>
+                    <td className={styles.secondaryText}>{item.starts_at ? formatDateTime(item.starts_at) : "—"}</td>
+                    <td className={styles.secondaryText}>{item.ends_at ? formatDateTime(item.ends_at) : "—"}</td>
                     <td className={styles.secondaryText}>{item.sort_order}</td>
+                    <td className={styles.secondaryText}>{formatDateTime(item.created_at)}</td>
+                    <td className={styles.secondaryText}>{formatDateTime(item.updated_at)}</td>
                     <td>
                       <div className={styles.rowActions}>
                         <button
