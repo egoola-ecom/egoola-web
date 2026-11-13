@@ -9,6 +9,8 @@ import {
   OrderStatusBadge,
   PAYMENT_STATUS_LABEL,
   PaymentStatusBadge,
+  itemAmountText,
+  itemRateUnit,
 } from "@/components/order-status";
 import { Modal } from "@/components/modal";
 import { AdminOrder, getOrder, updateOrderStatus } from "@/lib/admin-orders-api";
@@ -145,7 +147,7 @@ export function OrderDetailClient({ id }: { id: number }) {
   if (loadError || !order) {
     return (
       <div>
-        <button type="button" className={styles.backLink} onClick={() => router.push("/admin/orders")}>
+        <button type="button" className={styles.backLink} onClick={() => router.push(order?.order_type === "service" ? "/admin/orders/gigs" : "/admin/orders")}>
           ← Back to Orders
         </button>
         <p className={styles.errorBanner} data-testid="order-load-error">
@@ -167,7 +169,7 @@ export function OrderDetailClient({ id }: { id: number }) {
 
   return (
     <div>
-      <button type="button" className={styles.backLink} onClick={() => router.push("/admin/orders")}>
+      <button type="button" className={styles.backLink} onClick={() => router.push(order?.order_type === "service" ? "/admin/orders/gigs" : "/admin/orders")}>
         ← Back to Orders
       </button>
 
@@ -175,7 +177,7 @@ export function OrderDetailClient({ id }: { id: number }) {
         <div>
           <h1 className={styles.title}>Order #{order.id}</h1>
           <p className={styles.subtitle}>
-            {order.order_type} order · placed {formatDateTime(order.created_at)}
+            {order.order_type === "service" ? "Gig" : order.order_type === "product" ? "Product" : order.order_type} order · placed {formatDateTime(order.created_at)}
           </p>
           <div className={styles.detailBadgeRow}>
             <OrderStatusBadge status={order.status} />
@@ -304,7 +306,7 @@ export function OrderDetailClient({ id }: { id: number }) {
               <tr>
                 <th>Item</th>
                 <th>Price</th>
-                <th>Qty</th>
+                <th>{order.order_type === "service" ? "Duration" : "Qty"}</th>
                 <th>Total</th>
               </tr>
             </thead>
@@ -315,8 +317,11 @@ export function OrderDetailClient({ id }: { id: number }) {
                     {item.title_snapshot}
                     <div className={styles.secondaryText}>listing #{item.listing}</div>
                   </td>
-                  <td>{formatMoney(item.price_snapshot)}</td>
-                  <td>{item.qty ?? item.duration ?? "—"}</td>
+                  <td>
+                    {formatMoney(item.price_snapshot)}
+                    {itemRateUnit(item)}
+                  </td>
+                  <td>{itemAmountText(item)}</td>
                   <td>{formatMoney(item.subtotal)}</td>
                 </tr>
               ))}

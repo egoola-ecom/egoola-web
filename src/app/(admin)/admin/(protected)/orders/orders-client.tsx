@@ -11,13 +11,23 @@ import { formatDateTime } from "../_shared/buyer-cell";
 import { formatMoney } from "../_shared/readonly-field";
 import styles from "../management.module.css";
 
-/** Every product order on the platform, newest first, cursor paged ("Load
+/** One type of order on the platform (products, or gigs), newest first, cursor paged ("Load
  * more", no total). `buyer`, `seller` and `status` come from a link that opened
  * the page (a dashboard tile, for example) and narrow the list; they can be changed or dropped like any other filter. */
-export function OrdersClient({ buyer, seller, status: initialStatus }: { buyer?: string; seller?: string; status?: string }) {
+export function OrdersClient({
+  type,
+  buyer,
+  seller,
+  status: initialStatus,
+}: {
+  type: "product" | "service";
+  buyer?: string;
+  seller?: string;
+  status?: string;
+}) {
+  const gigs = type === "service";
   const [searchText, setSearchText] = useState("");
   const [status, setStatus] = useState(initialStatus ?? "");
-  const [orderType, setOrderType] = useState("");
   const [buyerId, setBuyerId] = useState<number | null>(buyer ? Number(buyer) : null);
   const [sellerId, setSellerId] = useState<number | null>(seller ? Number(seller) : null);
   const [createdFrom, setCreatedFrom] = useState("");
@@ -27,26 +37,25 @@ export function OrdersClient({ buyer, seller, status: initialStatus }: { buyer?:
   const filters = useMemo(
     () => ({
       status,
-      order_type: orderType,
       buyer: buyerId != null ? String(buyerId) : "",
       seller: sellerId != null ? String(sellerId) : "",
       created_from: createdFrom,
       created_to: createdTo,
     }),
-    [status, orderType, buyerId, sellerId, createdFrom, createdTo],
+    [status, buyerId, sellerId, createdFrom, createdTo],
   );
   const filtersActive = Boolean(search || Object.values(filters).some(Boolean));
+  const serverFilters = useMemo(() => ({ ...filters, order_type: type }), [filters, type]);
 
   const { items, loading, loadingMore, error, hasMore, loadMore, refetch } = useCursorList<AdminOrderRow>(
     listOrders,
     search,
-    filters,
+    serverFilters,
   );
 
   function clear() {
     setSearchText("");
     setStatus("");
-    setOrderType("");
     setBuyerId(null);
     setSellerId(null);
     setCreatedFrom("");
@@ -57,9 +66,9 @@ export function OrdersClient({ buyer, seller, status: initialStatus }: { buyer?:
     <div>
       <div className={styles.pageHeading}>
         <div>
-          <h1 className={styles.title}>Orders</h1>
+          <h1 className={styles.title}>{gigs ? "Gig orders" : "Product orders"}</h1>
           <p className={styles.subtitle}>
-            Every order on the platform. Open one to see everything about it, or to move it to any status.
+            {gigs ? "Every gig (service) order on the platform." : "Every product order on the platform."} Open one to see everything about it, or to move it to any status.
           </p>
         </div>
         <button type="button" className={styles.actionButton} onClick={refetch} disabled={loading}>
@@ -89,17 +98,6 @@ export function OrdersClient({ buyer, seller, status: initialStatus }: { buyer?:
                 {ORDER_STATUS_LABEL[value]}
               </option>
             ))}
-          </select>
-          <select
-            className={styles.filterSelect}
-            aria-label="Filter by order type"
-            value={orderType}
-            onChange={(event) => setOrderType(event.target.value)}
-          >
-            <option value="">All types</option>
-            <option value="product">Product</option>
-            <option value="service">Service</option>
-            <option value="job">Job</option>
           </select>
         </div>
       </div>
@@ -166,7 +164,7 @@ export function OrdersClient({ buyer, seller, status: initialStatus }: { buyer?:
             ) : items.length === 0 ? (
               <tr>
                 <td colSpan={7} className={styles.stateRow} data-testid="orders-empty">
-                  {filtersActive ? "No orders match these filters." : "No orders have been placed yet."}
+                  {filtersActive ? "No orders match these filters." : gigs ? "No gig orders have been placed yet." : "No product orders have been placed yet."}
                 </td>
               </tr>
             ) : (
