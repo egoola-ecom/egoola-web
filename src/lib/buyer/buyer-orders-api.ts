@@ -19,9 +19,13 @@ export interface OrderSeller {
   profile_pic_url: string | null;
 }
 
+export type OrderType = "product" | "service";
+export type OrderPriceType = "hourly" | "daily" | "weekly" | "monthly" | "fixed";
+
 export interface OrderRow {
   id: number;
-  order_type: string;
+  /** `service` = a gig order. Status, cancel and payment work the same for both. */
+  order_type: OrderType;
   seller: OrderSeller | null;
   status: OrderStatus;
   payment_status: PaymentStatus;
@@ -40,7 +44,9 @@ export interface OrderItem {
   listing_sku: number;
   title_snapshot: string;
   price_snapshot: string;
-  price_type_snapshot: string | null;
+  /** Set on a gig line only. */
+  price_type_snapshot: OrderPriceType | null;
+  /** A product line has `qty`, a gig line has `duration` (counted in `price_type_snapshot` units). */
   qty: number | null;
   duration: number | null;
   total: string;
@@ -102,7 +108,7 @@ const ORDERS = ENDPOINTS.buyer.orders;
 export const checkout = (input: CheckoutInput) =>
   authFetch<Order>("buyer", ORDERS.list, { method: "POST", body: JSON.stringify(input) });
 
-export const listOrders = (params: { status?: string; page?: number; page_size?: number } = {}) =>
+export const listOrders = (params: { status?: string; order_type?: OrderType; page?: number; page_size?: number } = {}) =>
   authFetch<PageResult<OrderRow>>("buyer", `${ORDERS.list}${toQuery(params)}`);
 
 export const getOrder = (id: number) => authFetch<Order>("buyer", ORDERS.detail(id));

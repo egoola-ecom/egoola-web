@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { listOrders, orderProblem, type OrderRow } from "@/lib/buyer/buyer-orders-api";
+import { listOrders, orderProblem, type OrderRow, type OrderType } from "@/lib/buyer/buyer-orders-api";
 import { isSignedOut } from "@/lib/buyer/cart-errors";
 import { loginUrlFor } from "@/lib/buyer/login-redirect";
 import { isInvalidPage } from "@/lib/buyer/public-fetch";
@@ -14,7 +14,7 @@ import { useQueryParams } from "../browse/use-query-params";
 import { dateText } from "../jobs/job-status";
 import { taka } from "../money";
 import { SHOP } from "../shop-links";
-import { OrderStatusBadge, PaymentStatusBadge } from "./order-status";
+import { OrderStatusBadge, OrderTypeBadge, PaymentStatusBadge } from "./order-status";
 
 const PAGE_SIZE = 10;
 
@@ -22,6 +22,7 @@ export function OrdersScreen() {
   const router = useRouter();
   const { get, update } = useQueryParams();
   const page = Math.max(1, Number(get("page")) || 1);
+  const orderType = get("order_type") as OrderType | "";
 
   const [data, setData] = useState<PageResult<OrderRow> | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +34,7 @@ export function OrdersScreen() {
     setData(null);
     setError(null);
     setPastEnd(false);
-    listOrders({ page, page_size: PAGE_SIZE })
+    listOrders({ page, page_size: PAGE_SIZE, order_type: orderType || undefined })
       .then((res) => {
         if (!cancelled) setData(res);
       })
@@ -47,11 +48,31 @@ export function OrdersScreen() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, orderType]);
 
   return (
     <div className="container-fluid p-587 my-3">
       <h4 className="mb-3">My orders</h4>
+
+      <ul className="nav nav-pills mb-3" data-testid="order-type-tabs">
+        {([
+          ["", "All"],
+          ["product", "Products"],
+          ["service", "Services"],
+        ] as const).map(([value, label]) => (
+          <li className="nav-item" key={value || "all"}>
+            <button
+              type="button"
+              className={`nav-link border-0 bg-transparent ${orderType === value ? "active" : "text-dark"}`}
+              data-testid={`order-type-tab-${value || "all"}`}
+              aria-current={orderType === value ? "page" : undefined}
+              onClick={() => update({ order_type: value || undefined })}
+            >
+              {label}
+            </button>
+          </li>
+        ))}
+      </ul>
 
       {error ? (
         <p className="text-danger text-center py-5" role="alert">
@@ -69,9 +90,12 @@ export function OrdersScreen() {
       ) : data.count === 0 ? (
         <div className="bg-white text-center p-5" data-testid="orders-empty">
           <h5>You haven&apos;t placed an order yet</h5>
-          <p className="text-muted">Add something to your cart and check out.</p>
-          <Link className="btn btn-success" href={SHOP.products}>
+          <p className="text-muted">Add a product or a service to your cart and check out.</p>
+          <Link className="btn btn-success mr-2" href={SHOP.products}>
             Browse products
+          </Link>
+          <Link className="btn btn-light border" href={SHOP.services}>
+            Browse services
           </Link>
         </div>
       ) : (
@@ -112,7 +136,7 @@ export function OrdersScreen() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <OrderStatusBadge status={order.status} />
+                      <OrderTypeBadge type={order.order_type} /> <OrderStatusBadge status={order.status} />
                     </div>
                   </div>
                   <div className="mt-2 small d-flex justify-content-between flex-wrap">
