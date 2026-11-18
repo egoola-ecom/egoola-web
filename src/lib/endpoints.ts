@@ -41,6 +41,11 @@ export const ENDPOINTS = {
   },
 
   buyer: {
+    me: {
+      root: "/buyer/me/",
+      avatar: "/buyer/me/avatar/",
+      changePassword: "/buyer/me/change-password/",
+    },
     addresses: resource("/buyer/addresses/"),
     orders: resource("/buyer/orders/"),
     jobs: {
